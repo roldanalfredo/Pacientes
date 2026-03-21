@@ -67,6 +67,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-nuevo-paciente').addEventListener('click', () => openPacienteModal());
   document.getElementById('btn-cancelar-paciente').addEventListener('click', closePacienteModal);
 
+  // Editar registro
+  document.getElementById('form-edit-registro').addEventListener('submit', handleEditRegistro);
+  document.getElementById('btn-cancelar-registro').addEventListener('click', () => {
+    document.getElementById('modal-registro').classList.add('hidden');
+  });
+
   // Registros pagination
   document.getElementById('reg-prev').addEventListener('click', () => { regPage--; loadRegistros(); });
   document.getElementById('reg-next').addEventListener('click', () => { regPage++; loadRegistros(); });
@@ -80,6 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-cargar-etl').addEventListener('click', cargarETL);
 
   // Pacientes filtros
+  document.getElementById('pac-buscar').addEventListener('input', loadPacientesTable);
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
   document.getElementById('pac-activo-desde').addEventListener('change', loadPacientesTable);
   document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
@@ -237,6 +244,7 @@ async function handleSesion(e) {
   if (error) { toast('Error: ' + error.message, 'error'); return; }
 
   toast('Sesión guardada', 'success');
+  invalidateDashboard();
   document.getElementById('form-sesion').reset();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('sesion-fecha').value = today;
@@ -283,6 +291,7 @@ async function handlePago(e) {
   if (error) { toast('Error: ' + error.message, 'error'); return; }
 
   toast('Pago guardado', 'success');
+  invalidateDashboard();
   document.getElementById('form-pago').reset();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('pago-fecha').value = today;
@@ -344,6 +353,7 @@ async function handlePsico(e) {
   if (errReg) { toast('Psicotécnico guardado, pero error en registro: ' + errReg.message, 'warning'); return; }
 
   toast('Psicotécnico guardado', 'success');
+  invalidateDashboard();
   document.getElementById('form-psico').reset();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('psico-fecha-cita').value = today;
@@ -394,8 +404,12 @@ async function loadPacientesTable() {
   }
 
   const soloSaldo = document.getElementById('pac-solo-saldo').checked;
+  const buscar = document.getElementById('pac-buscar').value.toLowerCase().trim();
 
   let filtered = pacientesCache;
+  if (buscar) {
+    filtered = filtered.filter(p => p.nombre.toLowerCase().includes(buscar));
+  }
   if (soloSaldo) {
     filtered = filtered.filter(p => (saldoMap[p.id] || 0) !== 0);
   }
@@ -456,6 +470,57 @@ window.editPaciente = function(id) {
   if (pac) openPacienteModal(pac);
 };
 
+window.editRegistro = async function(id) {
+  const { data, error } = await db.from('registros').select('*').eq('id', id).single();
+  if (error || !data) { toast('Error cargando registro', 'error'); return; }
+
+  document.getElementById('edit-reg-id').value = data.id;
+  document.getElementById('edit-reg-fecha').value = data.fecha;
+  document.getElementById('edit-reg-accion').value = data.accion;
+  document.getElementById('edit-reg-sesion').value = data.valor_sesion || '';
+  document.getElementById('edit-reg-pago').value = data.valor_pago || '';
+  document.getElementById('edit-reg-moneda').value = data.moneda || 'PESO';
+  document.getElementById('edit-reg-origen').value = data.origen || '';
+  document.getElementById('edit-reg-obs').value = data.observaciones || '';
+
+  // Poblar combo pacientes
+  const sel = document.getElementById('edit-reg-paciente');
+  sel.innerHTML = '';
+  pacientesCache.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.nombre;
+    if (p.id === data.paciente_id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('modal-registro').classList.remove('hidden');
+};
+
+async function handleEditRegistro(e) {
+  e.preventDefault();
+  const id = parseInt(document.getElementById('edit-reg-id').value);
+
+  const update = {
+    fecha: document.getElementById('edit-reg-fecha').value,
+    accion: document.getElementById('edit-reg-accion').value,
+    paciente_id: parseInt(document.getElementById('edit-reg-paciente').value),
+    valor_sesion: parseFloat(document.getElementById('edit-reg-sesion').value) || null,
+    valor_pago: parseFloat(document.getElementById('edit-reg-pago').value) || null,
+    moneda: document.getElementById('edit-reg-moneda').value,
+    origen: document.getElementById('edit-reg-origen').value || null,
+    observaciones: document.getElementById('edit-reg-obs').value || null
+  };
+
+  const { error } = await db.from('registros').update(update).eq('id', id);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+
+  toast('Registro actualizado', 'success');
+  invalidateDashboard();
+  document.getElementById('modal-registro').classList.add('hidden');
+  loadRegistros();
+}
+
 window.deleteRegistro = async function(id) {
   if (!confirm('¿Eliminar este registro?')) return;
 
@@ -465,11 +530,24 @@ window.deleteRegistro = async function(id) {
     return;
   }
   toast('Registro eliminado', 'success');
+  invalidateDashboard();
   loadRegistros();
+  // Refrescar tablas espejo si están visibles
+  const secSesion = document.getElementById('sec-cargar-sesion');
+  const secPago = document.getElementById('sec-cargar-pago');
+  if (secSesion && secSesion.classList.contains('active')) loadRegistrosMirror('sec-cargar-sesion');
+  if (secPago && secPago.classList.contains('active')) loadRegistrosMirror('sec-cargar-pago');
 };
 
 window.deletePaciente = async function(id, nombre) {
-  if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
+  // Verificar si tiene registros
+  const { count } = await db.from('registros').select('*', { count: 'exact', head: true }).eq('paciente_id', id);
+
+  let msg = `¿Eliminar a ${nombre}?`;
+  if (count > 0) {
+    msg = `${nombre} tiene ${count} registros asociados. Si lo eliminás, esos registros quedarán sin paciente.\n\n¿Continuar?`;
+  }
+  if (!confirm(msg)) return;
 
   const { error } = await db.from('pacientes').delete().eq('id', id);
   if (error) {
@@ -477,6 +555,8 @@ window.deletePaciente = async function(id, nombre) {
     return;
   }
   toast('Paciente eliminado', 'success');
+  await loadPacientes();
+  populateSelects();
   loadPacientesTable();
 };
 
@@ -551,7 +631,7 @@ async function loadRegistros() {
       <td${dolarClass}>${esc(r.moneda || '')}</td>
       <td>${esc(r.origen || '')}</td>
       <td>${esc(r.observaciones || '')}</td>
-      <td><button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
+      <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -567,10 +647,77 @@ async function loadRegistros() {
 // DASHBOARD
 // =============================================
 let pivotData = [];
+let dashboardDirty = true;
 const MONTH_NAMES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
 
+function invalidateDashboard() { dashboardDirty = true; }
+
 async function loadDashboard() {
-  await loadPivotData();
+  if (!dashboardDirty) return;
+  await Promise.all([loadPivotData(), loadDashboardCards()]);
+  dashboardDirty = false;
+}
+
+async function loadDashboardCards() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const mesDesde = `${y}-${String(m).padStart(2,'0')}-01`;
+  const mesHasta = m === 12 ? `${y+1}-01-01` : `${y}-${String(m+1).padStart(2,'0')}-01`;
+
+  const fmt = n => Math.abs(n).toLocaleString('es-AR');
+
+  // Pacientes activos (con registros en los últimos 3 meses)
+  const hace3m = new Date(y, now.getMonth() - 3, 1).toISOString().slice(0,10);
+  const { data: activos } = await db
+    .from('registros')
+    .select('paciente_id')
+    .gte('fecha', hace3m);
+  document.getElementById('stat-activos').textContent =
+    new Set((activos || []).map(r => r.paciente_id)).size;
+
+  // Facturado este mes (sum valor_sesion)
+  const { data: sesiones } = await db
+    .from('registros')
+    .select('valor_sesion, moneda')
+    .gte('fecha', mesDesde)
+    .lt('fecha', mesHasta)
+    .gt('valor_sesion', 0);
+  const factPesos = (sesiones || []).filter(r => r.moneda === 'PESO')
+    .reduce((s, r) => s + (r.valor_sesion || 0), 0);
+  const factUsd = (sesiones || []).filter(r => r.moneda === 'DÓLAR')
+    .reduce((s, r) => s + (r.valor_sesion || 0), 0);
+  document.getElementById('stat-fact-pesos').textContent = '$ ' + fmt(factPesos);
+  document.getElementById('stat-fact-usd').textContent = 'US$ ' + fmt(factUsd);
+
+  // Cobrado este mes (sum valor_pago)
+  const { data: pagos } = await db
+    .from('registros')
+    .select('valor_pago, moneda')
+    .gte('fecha', mesDesde)
+    .lt('fecha', mesHasta)
+    .gt('valor_pago', 0);
+  const cobrPesos = (pagos || []).filter(r => r.moneda === 'PESO')
+    .reduce((s, r) => s + (r.valor_pago || 0), 0);
+  const cobrUsd = (pagos || []).filter(r => r.moneda === 'DÓLAR')
+    .reduce((s, r) => s + (r.valor_pago || 0), 0);
+  document.getElementById('stat-cobr-pesos').textContent = '$ ' + fmt(cobrPesos);
+  document.getElementById('stat-cobr-usd').textContent = 'US$ ' + fmt(cobrUsd);
+
+  // Saldo pendiente total (separado por moneda)
+  const { data: saldos } = await db.from('v_saldos').select('saldo, moneda');
+  const saldoPesos = (saldos || []).filter(r => r.moneda === 'PESO')
+    .reduce((s, r) => s + (r.saldo || 0), 0);
+  const saldoUsd = (saldos || []).filter(r => r.moneda === 'DÓLAR')
+    .reduce((s, r) => s + (r.saldo || 0), 0);
+
+  const elSP = document.getElementById('stat-saldo-pesos');
+  elSP.textContent = '$ ' + fmt(saldoPesos);
+  elSP.style.color = saldoPesos > 0 ? 'var(--danger)' : saldoPesos < 0 ? 'var(--success)' : '';
+
+  const elSU = document.getElementById('stat-saldo-usd');
+  elSU.textContent = 'US$ ' + fmt(saldoUsd);
+  elSU.style.color = saldoUsd > 0 ? 'var(--danger)' : saldoUsd < 0 ? 'var(--success)' : '';
 }
 
 async function loadPivotData() {
@@ -773,7 +920,7 @@ async function loadRegistrosMirror(sectionId) {
       <td${dolarClass}>${esc(r.moneda || '')}</td>
       <td>${esc(r.origen || '')}</td>
       <td>${esc(r.observaciones || '')}</td>
-      <td><button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
+      <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1026,6 +1173,7 @@ async function cargarETL() {
   }
 
   toast(`${ok} pagos cargados${fail ? `, ${fail} con error` : ''}`, fail ? 'warning' : 'success');
+  invalidateDashboard();
   document.getElementById('etl-results').classList.add('hidden');
   document.getElementById('etl-input').value = '';
 }
