@@ -44,6 +44,7 @@
       <button class="nav-btn" data-section="pacientes">Pacientes</button>
       <button class="nav-btn" data-section="registros">Registros</button>
       <button class="nav-btn" data-section="etl">ETL Bancario</button>
+      <button class="nav-btn" data-section="etl-calendar">ETL Calendar</button>
     </nav>
 
     <!-- Main Content -->
@@ -312,10 +313,10 @@
       <section id="sec-etl" class="section">
         <h2>ETL Bancario</h2>
         <div class="form-card">
-          <p>Pegá el contenido del extracto bancario (copiado desde Excel/CSV). El sistema identificará los pacientes por DNI y preparará los pagos para cargar.</p>
+          <p>Subí el archivo Excel (.xlsx) del extracto bancario de Banco Galicia. El sistema identificará los pacientes por CUIT y preparará los pagos para cargar.</p>
           <div class="form-group">
-            <label>Datos del extracto (pegar filas con: Fecha, Movimiento, Débito, Crédito)</label>
-            <textarea id="etl-input" rows="8" placeholder="Pegá acá las filas del extracto bancario..."></textarea>
+            <label>Archivo del extracto bancario</label>
+            <input type="file" id="etl-file" accept=".xlsx,.xls">
           </div>
           <div class="form-actions">
             <button id="btn-procesar-etl" class="btn-primary">Procesar Extracto</button>
@@ -327,7 +328,7 @@
           <div class="filter-row" style="margin-bottom:0.5rem">
             <button class="btn-secondary" onclick="document.querySelectorAll('.etl-check').forEach(c=>c.checked=true)">Seleccionar todos</button>
             <button class="btn-secondary" onclick="document.querySelectorAll('.etl-check').forEach(c=>c.checked=false)">Deseleccionar todos</button>
-            <button class="btn-secondary" onclick="document.querySelectorAll('#tabla-etl tbody tr').forEach(tr=>{if(tr.style.background)tr.remove()})">Eliminar no identificados</button>
+            <button class="btn-secondary" onclick="document.querySelectorAll('#tabla-etl tbody tr').forEach(tr=>{if(tr.style.background==='rgb(255, 243, 205)')tr.remove()})">Eliminar no identificados</button>
           </div>
           <table id="tabla-etl">
             <thead>
@@ -337,6 +338,45 @@
           </table>
           <div class="form-actions">
             <button id="btn-cargar-etl" class="btn-primary">Cargar Pagos Seleccionados</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ETL CALENDAR -->
+      <section id="sec-etl-calendar" class="section">
+        <h2>ETL Calendar</h2>
+        <div class="form-card">
+          <p>Subí el archivo .ics exportado de Google Calendar. El sistema identificará los pacientes por nombre y preparará las sesiones para cargar.</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Archivo .ics</label>
+              <input type="file" id="cal-file" accept=".ics">
+            </div>
+            <div class="form-group">
+              <label>Eventos desde</label>
+              <input type="date" id="cal-desde">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="btn-procesar-cal" class="btn-primary">Procesar Calendario</button>
+          </div>
+        </div>
+
+        <div id="cal-results" class="hidden">
+          <h3>Sesiones identificadas</h3>
+          <div class="filter-row" style="margin-bottom:0.5rem">
+            <button class="btn-secondary" onclick="document.querySelectorAll('.cal-check').forEach(c=>c.checked=true)">Seleccionar todos</button>
+            <button class="btn-secondary" onclick="document.querySelectorAll('.cal-check').forEach(c=>c.checked=false)">Deseleccionar todos</button>
+            <button class="btn-secondary" onclick="document.querySelectorAll('#tabla-cal tbody tr').forEach(tr=>{if(tr.style.background==='rgb(255, 243, 205)')tr.remove()})">Eliminar no identificados</button>
+          </div>
+          <table id="tabla-cal">
+            <thead>
+              <tr><th>✓</th><th>Fecha</th><th>Evento</th><th>Paciente</th><th>Valor</th><th>Moneda</th><th>Origen</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="form-actions">
+            <button id="btn-cargar-cal" class="btn-primary">Cargar Sesiones Seleccionadas</button>
           </div>
         </div>
       </section>
@@ -405,6 +445,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

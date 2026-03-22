@@ -85,6 +85,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-procesar-etl').addEventListener('click', procesarETL);
   document.getElementById('btn-cargar-etl').addEventListener('click', cargarETL);
 
+  // ETL Calendar
+  const mesAtras = new Date();
+  mesAtras.setMonth(mesAtras.getMonth() - 1);
+  document.getElementById('cal-desde').value = mesAtras.toISOString().split('T')[0];
+  document.getElementById('btn-procesar-cal').addEventListener('click', procesarCalendar);
+  document.getElementById('btn-cargar-cal').addEventListener('click', cargarCalendar);
+
   // Pacientes filtros
   document.getElementById('pac-buscar').addEventListener('input', loadPacientesTable);
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
@@ -947,76 +954,74 @@ async function loadRegistrosMirror(sectionId) {
 // ETL BANCARIO
 // =============================================
 async function procesarETL() {
-  const input = document.getElementById('etl-input').value.trim();
-  if (!input) { toast('Pegá el contenido del extracto', 'error'); return; }
+  const fileInput = document.getElementById('etl-file');
+  if (!fileInput.files || !fileInput.files[0]) { toast('Seleccioná un archivo Excel', 'error'); return; }
 
-  const lines = input.split('\n');
+  const file = fileInput.files[0];
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+
+  // Leer filas como array de arrays (raw values)
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
   const results = [];
 
-  // Agrupar líneas en bloques: cada bloque empieza con una fecha
-  const bloques = [];
-  let bloque = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    // ¿Empieza con fecha dd/mm/yyyy?
-    const fechaMatch = trimmed.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
-    if (fechaMatch) {
-      if (bloque) bloques.push(bloque);
-      bloque = { fechaRaw: fechaMatch[1], lines: [trimmed] };
-    } else if (bloque) {
-      bloque.lines.push(trimmed);
-    }
+  // Buscar fila de encabezado (Fecha, Movimiento, Débito, Crédito)
+  let startRow = 0;
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const first = String(rows[i][0] || '').toLowerCase();
+    if (first === 'fecha') { startRow = i + 1; break; }
   }
-  if (bloque) bloques.push(bloque);
 
-  // Procesar cada bloque
-  for (const b of bloques) {
-    const fullText = b.lines.join(' ');
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[0]) continue;
 
-    // Solo transferencias
-    if (!fullText.toUpperCase().includes('TRANSFERENCIA')) continue;
-
-    // Parsear fecha
-    const dp = b.fechaRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (!dp) continue;
-    const fecha = `${dp[3]}-${dp[2].padStart(2, '0')}-${dp[1].padStart(2, '0')}`;
-
-    // Buscar monto: última línea que tenga formato de monto (x,xx con tabs)
-    let monto = 0;
-    for (let i = b.lines.length - 1; i >= 0; i--) {
-      const parts = b.lines[i].split('\t');
-      for (let j = parts.length - 1; j >= 0; j--) {
-        const val = parts[j].trim();
-        if (val.match(/^\d[\d.]*,\d{2}$/)) {
-          const parsed = parseFloat(val.replace(/\./g, '').replace(',', '.'));
-          if (parsed > 0 && parsed > monto) monto = parsed;
-        }
-      }
+    // Columna 0: Fecha (puede ser Date object o string)
+    let fecha;
+    const raw = row[0];
+    if (raw instanceof Date) {
+      fecha = raw.toISOString().split('T')[0];
+    } else if (typeof raw === 'number') {
+      // Excel serial date
+      const d = XLSX.SSF.parse_date_code(raw);
+      fecha = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    } else {
+      const dp = String(raw).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (!dp) continue;
+      fecha = `${dp[3]}-${dp[2].padStart(2, '0')}-${dp[1].padStart(2, '0')}`;
     }
+
+    // Columna 1: Movimiento (texto multilínea en una celda)
+    const movimiento = String(row[1] || '');
+    if (!movimiento.toUpperCase().includes('TRANSFERENCIA')) continue;
+
+    // Columna 2: Débito, Columna 3: Crédito
+    const debito = parseFloat(String(row[2] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    const credito = parseFloat(String(row[3] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    const monto = credito > 0 ? credito : debito;
     if (monto <= 0) continue;
 
-    // Extraer CUIT del bloque (11 dígitos, empieza con 20/23/24/27/30/33/34)
+    // Extraer CUIT y nombre del campo Movimiento
+    const lineas = movimiento.split('\n').map(l => l.trim()).filter(l => l);
     let cuit = null;
     let nombre = '';
-    // Primero buscar CUIT en líneas sueltas (formato multilínea)
-    for (const l of b.lines) {
-      const cuitMatch = l.trim().match(/^((?:20|23|24|27|30|33|34)\d{9})$/);
+
+    for (const l of lineas) {
+      const cuitMatch = l.match(/^((?:20|23|24|27|30|33|34)\d{9})$/);
       if (cuitMatch) { cuit = cuitMatch[1]; continue; }
-      if (!nombre && !l.includes('TRANSFERENCIA') && !l.includes('CREDITO') && !l.match(/^\d/) && l.trim().length > 3) {
-        nombre = l.trim();
+      if (!nombre && !l.includes('TRANSFERENCIA') && !l.includes('CREDITO') && !l.match(/^\d/) && l.length > 3) {
+        nombre = l;
       }
     }
-    // Si no se encontró, buscar CUIT dentro del texto completo (formato línea única)
+    // Buscar CUIT inline si no se encontró en línea suelta
     if (!cuit) {
-      const cuitInline = fullText.match(/\b((?:20|23|24|27|30|33|34)\d{9})\b/);
+      const cuitInline = movimiento.match(/\b((?:20|23|24|27|30|33|34)\d{9})\b/);
       if (cuitInline) cuit = cuitInline[1];
     }
-    // Si no hay nombre, intentar extraerlo del texto (después de TERCEROS o COELSA)
     if (!nombre) {
-      const nameMatch = fullText.match(/(?:TERCEROS|COELSA)\s+(.+?)\s+\d{11}/);
+      const nameMatch = movimiento.match(/(?:TERCEROS|COELSA)\s+(.+?)\s+\d{11}/);
       if (nameMatch) nombre = nameMatch[1];
     }
 
@@ -1175,7 +1180,167 @@ async function cargarETL() {
   toast(`${ok} pagos cargados${fail ? `, ${fail} con error` : ''}`, fail ? 'warning' : 'success');
   invalidateDashboard();
   document.getElementById('etl-results').classList.add('hidden');
-  document.getElementById('etl-input').value = '';
+  document.getElementById('etl-file').value = '';
+}
+
+// =============================================
+// ETL CALENDAR
+// =============================================
+
+function parseICS(text) {
+  const events = [];
+  const lines = text.replace(/\r\n /g, '').replace(/\r/g, '').split('\n');
+  let ev = null;
+  for (const line of lines) {
+    if (line === 'BEGIN:VEVENT') { ev = {}; continue; }
+    if (line === 'END:VEVENT') { if (ev) events.push(ev); ev = null; continue; }
+    if (!ev) continue;
+    if (line.startsWith('SUMMARY:')) ev.summary = line.substring(8);
+    if (line.startsWith('DTSTART')) {
+      const val = line.split(':').pop();
+      // Format: 20221011T170000 or 20221011T170000Z
+      ev.date = val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6, 8);
+    }
+    if (line.startsWith('STATUS:')) ev.status = line.substring(7);
+  }
+  return events;
+}
+
+function matchPaciente(summary) {
+  const s = summary.toLowerCase().trim();
+  // Exact match
+  let found = pacientesCache.find(p => p.nombre.toLowerCase() === s);
+  if (found) return found;
+  // Patient name contained in summary
+  found = pacientesCache.find(p => s.includes(p.nombre.toLowerCase()));
+  if (found) return found;
+  // Summary contained in patient name
+  found = pacientesCache.find(p => p.nombre.toLowerCase().includes(s));
+  if (found) return found;
+  return null;
+}
+
+async function procesarCalendar() {
+  const fileInput = document.getElementById('cal-file');
+  const desde = document.getElementById('cal-desde').value;
+  if (!fileInput.files.length) { toast('Seleccioná un archivo .ics', 'error'); return; }
+
+  const text = await fileInput.files[0].text();
+  const events = parseICS(text);
+
+  // Filter by date and status
+  const filtered = events.filter(ev => {
+    if (ev.status && ev.status !== 'CONFIRMED') return false;
+    if (!ev.date || !ev.summary) return false;
+    if (desde && ev.date < desde) return false;
+    return true;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+
+  if (!filtered.length) { toast('No se encontraron eventos en el período', 'warning'); return; }
+
+  // Check for duplicates
+  const { data: existingReg } = await db.from('registros')
+    .select('fecha, paciente_id')
+    .eq('accion', 'SESION')
+    .gte('fecha', desde || '2000-01-01');
+
+  const existingSet = new Set((existingReg || []).map(r => r.fecha + '|' + r.paciente_id));
+
+  const tbody = document.querySelector('#tabla-cal tbody');
+  tbody.innerHTML = '';
+
+  const comboOptions = pacientesCache
+    .filter(p => !p.nombre.toLowerCase().startsWith('psicotec'))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    .map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`)
+    .join('');
+
+  let count = 0;
+  for (const ev of filtered) {
+    const pac = matchPaciente(ev.summary);
+    const isDuplicate = pac && existingSet.has(ev.date + '|' + pac.id);
+
+    if (isDuplicate) continue; // Skip already loaded
+
+    count++;
+    const tr = document.createElement('tr');
+    if (!pac) tr.style.background = 'rgb(255, 243, 205)';
+
+    const checkedAttr = pac ? 'checked' : '';
+
+    tr.innerHTML = `
+      <td><input type="checkbox" class="cal-check" ${checkedAttr}></td>
+      <td>${formatDate(ev.date)}</td>
+      <td>${esc(ev.summary)}</td>
+      <td>${pac
+        ? `<span data-pac-id="${pac.id}">${esc(pac.nombre)}</span>`
+        : `<select class="cal-pac-select" onchange="calSelectPaciente(this)">
+            <option value="">-- Asignar --</option>${comboOptions}
+           </select>`
+      }</td>
+      <td>${pac ? formatNum(pac.valor) : ''}</td>
+      <td>${pac ? esc(pac.moneda) : ''}</td>
+      <td>${pac ? esc(pac.origen) : ''}</td>
+      <td><button class="btn-small" onclick="this.closest('tr').remove()">✕</button></td>
+    `;
+    tr.dataset.fecha = ev.date;
+    tr.dataset.pacId = pac ? pac.id : '';
+    tr.dataset.summary = ev.summary;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('cal-results').classList.remove('hidden');
+  toast(`${count} eventos encontrados (${filtered.length - count} duplicados omitidos)`, 'success');
+}
+
+function calSelectPaciente(select) {
+  const tr = select.closest('tr');
+  const pacId = parseInt(select.value);
+  const pac = pacientesCache.find(p => p.id === pacId);
+  if (pac) {
+    tr.dataset.pacId = pac.id;
+    tr.style.background = '';
+    tr.querySelector('.cal-check').checked = true;
+    // Update value, currency, origin cells
+    const cells = tr.querySelectorAll('td');
+    cells[4].textContent = formatNum(pac.valor);
+    cells[5].textContent = pac.moneda;
+    cells[6].textContent = pac.origen;
+  }
+}
+
+async function cargarCalendar() {
+  const rows = document.querySelectorAll('#tabla-cal tbody tr');
+  let ok = 0, fail = 0;
+
+  for (const tr of rows) {
+    const checked = tr.querySelector('.cal-check');
+    if (!checked || !checked.checked) continue;
+
+    const pacId = parseInt(tr.dataset.pacId);
+    if (!pacId) { fail++; continue; }
+
+    const pac = pacientesCache.find(p => p.id === pacId);
+    if (!pac) { fail++; continue; }
+
+    const { error } = await db.from('registros').insert({
+      fecha: tr.dataset.fecha,
+      paciente_id: pacId,
+      accion: 'SESION',
+      valor_sesion: pac.valor,
+      moneda: pac.moneda,
+      origen: pac.origen,
+      observaciones: 'ETL Calendar - ' + tr.dataset.summary
+    });
+
+    if (error) fail++;
+    else ok++;
+  }
+
+  toast(`${ok} sesiones cargadas${fail ? `, ${fail} con error` : ''}`, fail ? 'warning' : 'success');
+  invalidateDashboard();
+  document.getElementById('cal-results').classList.add('hidden');
+  document.getElementById('cal-file').value = '';
 }
 
 // =============================================
