@@ -15,7 +15,8 @@
   --text: #2c3e50;
   --text-light: #7f8c8d;
   --border: #dfe6e9;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-hover: 0 4px 16px rgba(0,0,0,0.1);
 }
 
 body {
@@ -43,6 +44,39 @@ body {
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   text-align: center;
   width: 360px;
+}
+
+/* ===== NP LOGO ===== */
+.np-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  color: white;
+  font-family: 'Georgia', serif;
+  font-weight: 700;
+  border-radius: 12px;
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+.np-logo span {
+  color: #e3747a;
+}
+
+.np-logo-lg {
+  font-size: 3rem;
+  width: 120px;
+  height: 120px;
+  border-radius: 20px;
+  margin: 0 auto 1rem;
+}
+
+.np-logo-sm {
+  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
 }
 
 .login-box h1 {
@@ -125,19 +159,21 @@ nav {
 }
 
 .nav-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border: none;
   background: transparent;
   color: var(--text-light);
   font-size: 0.9rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 0;
   white-space: nowrap;
   transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  font-weight: 500;
 }
 
-.nav-btn:hover { background: var(--bg); color: var(--text); }
-.nav-btn.active { background: var(--primary); color: white; }
+.nav-btn:hover { color: var(--primary); border-bottom-color: var(--border); }
+.nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
 /* ===== MAIN ===== */
 main {
@@ -328,7 +364,14 @@ td {
   border-bottom: 1px solid var(--border);
 }
 
-tbody tr:hover { background: #f8f9fa; }
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: #edf2f7; }
+
+/* Números alineados a la derecha */
+td:nth-child(n+4):not(:last-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 .cel-dolar { background: #d4edda !important; }
 
 .saldo-positivo { color: var(--danger); font-weight: 600; }
@@ -348,7 +391,17 @@ tbody tr:hover { background: #f8f9fa; }
   padding: 1.25rem;
   border-radius: 10px;
   box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary);
+  transition: box-shadow 0.2s;
 }
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card:nth-child(2) { border-left-color: var(--success); }
+.card:nth-child(3) { border-left-color: #548235; }
+.card:nth-child(4) { border-left-color: var(--danger); }
 
 .card h3 {
   font-size: 0.85rem;
@@ -630,7 +683,7 @@ tbody tr:hover { background: #f8f9fa; }
 
   /* Nav */
   nav { padding: 0.5rem; gap: 0.2rem; }
-  .nav-btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
+  .nav-btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; border-bottom-width: 2px; }
 
   /* Main */
   main { padding: 0.75rem; }
