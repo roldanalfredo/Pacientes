@@ -579,12 +579,12 @@ tbody tr:hover { background: #f8f9fa; }
 }
 
 #sec-cargar-sesion .form-panel {
-  background: #dce8f5;
+  background: #a8cce8;
   border-left: 4px solid #2e5fa1;
 }
 
 #sec-cargar-pago .form-panel {
-  background: #d8f0d8;
+  background: #a8dda8;
   border-left: 4px solid #27ae60;
 }
 
