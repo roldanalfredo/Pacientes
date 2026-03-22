@@ -646,12 +646,36 @@ async function loadRegistros() {
   const { data, count, error } = await query;
   if (error) { toast('Error: ' + error.message, 'error'); return; }
 
+  // Saldo: acumulado si hay paciente filtrado, total si no
+  let saldoMap = {};
+  let acumulados = null;
+
+  if (pacId) {
+    // Traer TODOS los registros del paciente ordenados por fecha ASC para calcular acumulado
+    const { data: allReg } = await db.from('registros')
+      .select('id, fecha, valor_sesion, valor_pago')
+      .eq('paciente_id', parseInt(pacId))
+      .order('fecha', { ascending: true })
+      .order('id', { ascending: true });
+    acumulados = {};
+    let running = 0;
+    (allReg || []).forEach(r => {
+      running += (r.valor_sesion || 0) - (r.valor_pago || 0);
+      acumulados[r.id] = running;
+    });
+  } else {
+    const { data: saldosData } = await db.from('v_saldos').select('id, saldo');
+    (saldosData || []).forEach(s => { saldoMap[s.id] = s.saldo; });
+  }
+
   const tbody = document.querySelector('#tabla-registros tbody');
   tbody.innerHTML = '';
 
   (data || []).forEach(r => {
     const tr = document.createElement('tr');
     const dolarClass = r.moneda === 'DÓLAR' ? ' class="cel-dolar"' : '';
+    const saldo = acumulados ? acumulados[r.id] : saldoMap[r.paciente_id];
+    const saldoClass = saldo > 0 ? 'color:var(--danger)' : saldo < 0 ? 'color:var(--success)' : '';
     tr.innerHTML = `
       <td>${formatDate(r.fecha)}</td>
       <td>${esc(r.pacientes?.nombre || '?')}</td>
@@ -661,6 +685,7 @@ async function loadRegistros() {
       <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>
       <td${dolarClass}>${esc(r.moneda || '')}</td>
       <td>${esc(r.origen || '')}</td>
+      <td style="${saldoClass}">${saldo != null ? formatNum(saldo) : ''}</td>
       <td>${esc(r.observaciones || '')}</td>
       <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
     `;
