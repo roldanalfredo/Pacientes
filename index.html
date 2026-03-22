@@ -130,9 +130,9 @@
           <form id="form-sesion" class="form-inline">
             <div class="form-group"><label>Fecha</label><input type="date" id="sesion-fecha" required></div>
             <div class="form-group"><label>Paciente</label><select id="sesion-paciente" required><option value="">Seleccionar...</option></select></div>
-            <div class="form-group"><label>Valor</label><input type="text" id="sesion-valor" readonly class="readonly"></div>
-            <div class="form-group"><label>Moneda</label><input type="text" id="sesion-moneda" readonly class="readonly"></div>
-            <div class="form-group"><label>Origen</label><input type="text" id="sesion-origen" readonly class="readonly"></div>
+            <div class="form-group"><label>Valor</label><input type="text" id="sesion-valor" readonly tabindex="-1" class="readonly"></div>
+            <div class="form-group"><label>Moneda</label><input type="text" id="sesion-moneda" readonly tabindex="-1" class="readonly"></div>
+            <div class="form-group"><label>Origen</label><input type="text" id="sesion-origen" readonly tabindex="-1" class="readonly"></div>
             <div class="form-group"><label>Obs.</label><input type="text" id="sesion-obs" placeholder="Observaciones"></div>
             <div class="form-group"><label>&nbsp;</label><button type="submit" class="btn-primary">Guardar</button></div>
           </form>
@@ -144,7 +144,7 @@
             <input type="month" id="reg-filtro-mes-s" class="reg-filtro-mes-mirror">
             <button class="btn-primary btn-filtrar-mirror">Filtrar</button>
           </div>
-          <table class="tabla-registros-mirror"><thead><tr><th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th></tr></thead><tbody></tbody></table>
+          <table class="tabla-registros-mirror"><thead><tr><th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>$ Rec.</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th></tr></thead><tbody></tbody></table>
           <div class="pagination"><button class="btn-secondary reg-prev-mirror" disabled>← Anterior</button><span class="reg-page-info-mirror"></span><button class="btn-secondary reg-next-mirror">Siguiente →</button></div>
         </div>
       </section>
@@ -156,10 +156,14 @@
           <form id="form-pago" class="form-inline">
             <div class="form-group"><label>Fecha</label><input type="date" id="pago-fecha" required></div>
             <div class="form-group"><label>Paciente</label><select id="pago-paciente" required><option value="">Seleccionar...</option></select></div>
-            <div class="form-group"><label>Valor sesión</label><input type="text" id="pago-valor-sesion" readonly class="readonly"></div>
-            <div class="form-group"><label>Moneda</label><input type="text" id="pago-moneda" readonly class="readonly"></div>
-            <div class="form-group"><label>Origen</label><input type="text" id="pago-origen" readonly class="readonly"></div>
+            <div class="form-group"><label>Valor sesión</label><input type="text" id="pago-valor-sesion" readonly tabindex="-1" class="readonly"></div>
+            <div class="form-group"><label>Moneda</label><input type="text" id="pago-moneda" readonly tabindex="-1" class="readonly"></div>
+            <div class="form-group"><label>Origen</label><input type="text" id="pago-origen" readonly tabindex="-1" class="readonly"></div>
             <div class="form-group"><label>Monto pago</label><input type="number" id="pago-monto" step="0.01" required></div>
+            <div class="form-group hidden" id="pago-conv-group">
+              <label><input type="checkbox" id="pago-convertido"> Recibido en pesos</label>
+              <input type="number" id="pago-pesos" step="0.01" placeholder="Monto en $" class="hidden">
+            </div>
             <div class="form-group"><label>Obs.</label><input type="text" id="pago-obs" placeholder="Observaciones"></div>
             <div class="form-group"><label>&nbsp;</label><button type="submit" class="btn-primary">Guardar</button></div>
           </form>
@@ -171,7 +175,7 @@
             <input type="month" id="reg-filtro-mes-p" class="reg-filtro-mes-mirror">
             <button class="btn-primary btn-filtrar-mirror">Filtrar</button>
           </div>
-          <table class="tabla-registros-mirror"><thead><tr><th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th></tr></thead><tbody></tbody></table>
+          <table class="tabla-registros-mirror"><thead><tr><th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>$ Rec.</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th></tr></thead><tbody></tbody></table>
           <div class="pagination"><button class="btn-secondary reg-prev-mirror" disabled>← Anterior</button><span class="reg-page-info-mirror"></span><button class="btn-secondary reg-next-mirror">Siguiente →</button></div>
         </div>
       </section>
@@ -183,8 +187,8 @@
           <form id="form-psico" class="form-card">
             <div class="form-row">
               <div class="form-group"><label>Tipo</label><select id="psico-tipo" required><option value="">Seleccionar tipo...</option></select></div>
-              <div class="form-group"><label>Valor</label><input type="text" id="psico-valor" readonly class="readonly"></div>
-              <div class="form-group"><label>Moneda</label><input type="text" id="psico-moneda" readonly class="readonly"></div>
+              <div class="form-group"><label>Valor</label><input type="text" id="psico-valor" readonly tabindex="-1" class="readonly"></div>
+              <div class="form-group"><label>Moneda</label><input type="text" id="psico-moneda" readonly tabindex="-1" class="readonly"></div>
             </div>
             <div class="form-row">
               <div class="form-group"><label>Nombre del evaluado</label><input type="text" id="psico-nombre" required></div>
@@ -297,7 +301,7 @@
         <table id="tabla-registros">
           <thead>
             <tr>
-              <th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th>
+              <th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>$ Rec.</th><th>Moneda</th><th>Origen</th><th>Obs.</th><th></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -427,6 +431,10 @@
               <label>Origen</label>
               <input type="text" id="edit-reg-origen">
             </div>
+          </div>
+          <div class="form-group">
+            <label>Pesos recibidos (conversión USD→ARS)</label>
+            <input type="number" id="edit-reg-pesos-rec" step="0.01" placeholder="Solo para pagos en dólares recibidos en pesos">
           </div>
           <div class="form-group">
             <label>Observaciones</label>

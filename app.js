@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('sesion-paciente').addEventListener('change', onSesionPacienteChange);
   document.getElementById('pago-paciente').addEventListener('change', onPagoPacienteChange);
   document.getElementById('psico-tipo').addEventListener('change', onPsicoTipoChange);
+  document.getElementById('pago-convertido').addEventListener('change', function() {
+    document.getElementById('pago-pesos').classList.toggle('hidden', !this.checked);
+  });
 
   // Pacientes ABM
   document.getElementById('btn-nuevo-paciente').addEventListener('click', () => openPacienteModal());
@@ -271,6 +274,15 @@ function onPagoPacienteChange() {
   document.getElementById('pago-valor-sesion').value = pac ? pac.valor : '';
   document.getElementById('pago-moneda').value = pac ? pac.moneda : '';
   document.getElementById('pago-origen').value = pac ? pac.origen : '';
+  // Mostrar opción de conversión solo para pacientes en dólares
+  const convGroup = document.getElementById('pago-conv-group');
+  if (pac && pac.moneda === 'DÓLAR') {
+    convGroup.classList.remove('hidden');
+  } else {
+    convGroup.classList.add('hidden');
+    document.getElementById('pago-convertido').checked = false;
+    document.getElementById('pago-pesos').classList.add('hidden');
+  }
 }
 
 async function handlePago(e) {
@@ -285,7 +297,7 @@ async function handlePago(e) {
   const monto = parseFloat(document.getElementById('pago-monto').value);
   if (isNaN(monto) || monto <= 0) { toast('Ingresá un monto válido', 'error'); return; }
 
-  const { error } = await db.from('registros').insert({
+  const registro = {
     fecha,
     paciente_id: pacienteId,
     accion: 'PAGO',
@@ -293,7 +305,16 @@ async function handlePago(e) {
     moneda: pac.moneda,
     origen: pac.origen,
     observaciones: document.getElementById('pago-obs').value || null
-  });
+  };
+
+  // Si es pago en dólares recibido en pesos
+  if (pac.moneda === 'DÓLAR' && document.getElementById('pago-convertido').checked) {
+    const pesos = parseFloat(document.getElementById('pago-pesos').value);
+    if (isNaN(pesos) || pesos <= 0) { toast('Ingresá el monto en pesos recibido', 'error'); return; }
+    registro.pesos_recibidos = pesos;
+  }
+
+  const { error } = await db.from('registros').insert(registro);
 
   if (error) { toast('Error: ' + error.message, 'error'); return; }
 
@@ -489,6 +510,7 @@ window.editRegistro = async function(id) {
   document.getElementById('edit-reg-moneda').value = data.moneda || 'PESO';
   document.getElementById('edit-reg-origen').value = data.origen || '';
   document.getElementById('edit-reg-obs').value = data.observaciones || '';
+  document.getElementById('edit-reg-pesos-rec').value = data.pesos_recibidos || '';
 
   // Poblar combo pacientes
   const sel = document.getElementById('edit-reg-paciente');
@@ -516,7 +538,8 @@ async function handleEditRegistro(e) {
     valor_pago: parseFloat(document.getElementById('edit-reg-pago').value) || null,
     moneda: document.getElementById('edit-reg-moneda').value,
     origen: document.getElementById('edit-reg-origen').value || null,
-    observaciones: document.getElementById('edit-reg-obs').value || null
+    observaciones: document.getElementById('edit-reg-obs').value || null,
+    pesos_recibidos: parseFloat(document.getElementById('edit-reg-pesos-rec').value) || null
   };
 
   const { error } = await db.from('registros').update(update).eq('id', id);
@@ -635,6 +658,7 @@ async function loadRegistros() {
       <td>${esc(r.accion)}</td>
       <td${dolarClass}>${r.valor_sesion ? formatNum(r.valor_sesion) : ''}</td>
       <td${dolarClass}>${r.valor_pago ? formatNum(r.valor_pago) : ''}</td>
+      <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>
       <td${dolarClass}>${esc(r.moneda || '')}</td>
       <td>${esc(r.origen || '')}</td>
       <td>${esc(r.observaciones || '')}</td>
@@ -697,23 +721,25 @@ async function loadDashboardCards() {
   document.getElementById('stat-fact-pesos').textContent = '$ ' + fmt(factPesos);
   document.getElementById('stat-fact-usd').textContent = 'US$ ' + fmt(factUsd);
 
-  // Cobrado este mes (sum valor_pago)
+  // Cobrado este mes (sum valor_pago + pesos_recibidos de conversiones USD)
   const { data: pagos } = await db
     .from('registros')
-    .select('valor_pago, moneda')
+    .select('valor_pago, moneda, pesos_recibidos')
     .gte('fecha', mesDesde)
     .lt('fecha', mesHasta)
     .gt('valor_pago', 0);
   const cobrPesos = (pagos || []).filter(r => r.moneda === 'PESO')
     .reduce((s, r) => s + (r.valor_pago || 0), 0);
+  const cobrPesosConversion = (pagos || []).filter(r => r.pesos_recibidos)
+    .reduce((s, r) => s + (r.pesos_recibidos || 0), 0);
   const cobrUsd = (pagos || []).filter(r => r.moneda === 'DÓLAR')
     .reduce((s, r) => s + (r.valor_pago || 0), 0);
-  document.getElementById('stat-cobr-pesos').textContent = '$ ' + fmt(cobrPesos);
+  document.getElementById('stat-cobr-pesos').textContent = '$ ' + fmt(cobrPesos + cobrPesosConversion);
   document.getElementById('stat-cobr-usd').textContent = 'US$ ' + fmt(cobrUsd);
 
   // Saldo pendiente total (separado por moneda)
-  const { data: saldos } = await db.from('v_saldos').select('saldo, moneda');
-  const saldoPesos = (saldos || []).filter(r => r.moneda === 'PESO')
+  const { data: saldos } = await db.from('v_saldos').select('saldo, moneda, nombre');
+  const saldoPesos = (saldos || []).filter(r => r.moneda === 'PESO' && r.nombre.toLowerCase() !== 'cobros en dolares')
     .reduce((s, r) => s + (r.saldo || 0), 0);
   const saldoUsd = (saldos || []).filter(r => r.moneda === 'DÓLAR')
     .reduce((s, r) => s + (r.saldo || 0), 0);
@@ -924,6 +950,7 @@ async function loadRegistrosMirror(sectionId) {
       <td>${esc(r.accion)}</td>
       <td${dolarClass}>${r.valor_sesion ? formatNum(r.valor_sesion) : ''}</td>
       <td${dolarClass}>${r.valor_pago ? formatNum(r.valor_pago) : ''}</td>
+      <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>
       <td${dolarClass}>${esc(r.moneda || '')}</td>
       <td>${esc(r.origen || '')}</td>
       <td>${esc(r.observaciones || '')}</td>
@@ -1206,16 +1233,25 @@ function parseICS(text) {
   return events;
 }
 
+function normalize(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
 function matchPaciente(summary) {
-  const s = summary.toLowerCase().trim();
+  const s = normalize(summary);
+  // "appointment" events → Frankie
+  if (s.startsWith('appointment')) {
+    const frankie = pacientesCache.find(p => normalize(p.nombre).includes('frankie'));
+    if (frankie) return frankie;
+  }
   // Exact match
-  let found = pacientesCache.find(p => p.nombre.toLowerCase() === s);
+  let found = pacientesCache.find(p => normalize(p.nombre) === s);
   if (found) return found;
   // Patient name contained in summary
-  found = pacientesCache.find(p => s.includes(p.nombre.toLowerCase()));
+  found = pacientesCache.find(p => s.includes(normalize(p.nombre)));
   if (found) return found;
   // Summary contained in patient name
-  found = pacientesCache.find(p => p.nombre.toLowerCase().includes(s));
+  found = pacientesCache.find(p => normalize(p.nombre).includes(s));
   if (found) return found;
   return null;
 }
@@ -1233,6 +1269,8 @@ async function procesarCalendar() {
     if (ev.status && ev.status !== 'CONFIRMED') return false;
     if (!ev.date || !ev.summary) return false;
     if (desde && ev.date < desde) return false;
+    const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
+    if (ev.date > ayer.toISOString().split('T')[0]) return false;
     return true;
   }).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1255,34 +1293,64 @@ async function procesarCalendar() {
     .map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`)
     .join('');
 
-  let count = 0;
+  const dudosoKeywords = ['turno', 'reunión', 'reunion', 'cumple', 'feriado', 'devolución', 'devolucion',
+    'entrevista', 'hacer', 'ver ', 'enviar', 'llamar', 'comprar', 'pagar', 'cobrar', 'supervisión',
+    'supervision', 'vacaciones', 'viaje', 'médico', 'medico', 'dentista', 'control', 'guardia'];
+
+  function esDudoso(summary) {
+    const s = normalize(summary);
+    if (s.split(/\s+/).length > 4) return true;
+    if (dudosoKeywords.some(k => s.includes(k))) return true;
+    return false;
+  }
+
+  let count = 0, dups = 0;
   for (const ev of filtered) {
     const pac = matchPaciente(ev.summary);
     const isDuplicate = pac && existingSet.has(ev.date + '|' + pac.id);
-
-    if (isDuplicate) continue; // Skip already loaded
+    const dudoso = !pac && esDudoso(ev.summary);
 
     count++;
     const tr = document.createElement('tr');
-    if (!pac) tr.style.background = 'rgb(255, 243, 205)';
 
-    const checkedAttr = pac ? 'checked' : '';
+    if (isDuplicate) {
+      dups++;
+      tr.style.background = '#f0d0d0';
+      tr.innerHTML = `
+        <td></td>
+        <td>${formatDate(ev.date)}</td>
+        <td>${esc(ev.summary)}</td>
+        <td>${esc(pac.nombre)} <em style="color:#c00">(ya cargado)</em></td>
+        <td>${formatNum(pac.valor)}</td>
+        <td>${esc(pac.moneda)}</td>
+        <td>${esc(pac.origen)}</td>
+        <td></td>
+      `;
+    } else {
+      const checkedAttr = pac ? 'checked' : '';
+      if (dudoso) {
+        tr.style.background = '#e0e0e0';
+      } else if (!pac) {
+        tr.style.background = 'rgb(255, 243, 205)';
+      }
 
-    tr.innerHTML = `
-      <td><input type="checkbox" class="cal-check" ${checkedAttr}></td>
-      <td>${formatDate(ev.date)}</td>
-      <td>${esc(ev.summary)}</td>
-      <td>${pac
-        ? `<span data-pac-id="${pac.id}">${esc(pac.nombre)}</span>`
-        : `<select class="cal-pac-select" onchange="calSelectPaciente(this)">
-            <option value="">-- Asignar --</option>${comboOptions}
-           </select>`
-      }</td>
-      <td>${pac ? formatNum(pac.valor) : ''}</td>
-      <td>${pac ? esc(pac.moneda) : ''}</td>
-      <td>${pac ? esc(pac.origen) : ''}</td>
-      <td><button class="btn-small" onclick="this.closest('tr').remove()">✕</button></td>
-    `;
+      const selectedOption = pac
+        ? comboOptions.replace(`value="${pac.id}"`, `value="${pac.id}" selected`)
+        : comboOptions;
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="cal-check" ${checkedAttr}></td>
+        <td>${formatDate(ev.date)}</td>
+        <td>${esc(ev.summary)}${dudoso ? ' <em style="color:#888">(dudoso)</em>' : ''}</td>
+        <td><select class="cal-pac-select" onchange="calSelectPaciente(this)">
+              <option value="">-- Asignar --</option>${selectedOption}
+            </select></td>
+        <td>${pac ? formatNum(pac.valor) : ''}</td>
+        <td>${pac ? esc(pac.moneda) : ''}</td>
+        <td>${pac ? esc(pac.origen) : ''}</td>
+        <td><button class="btn-danger" onclick="this.closest('tr').remove()">×</button></td>
+      `;
+    }
     tr.dataset.fecha = ev.date;
     tr.dataset.pacId = pac ? pac.id : '';
     tr.dataset.summary = ev.summary;
@@ -1290,7 +1358,8 @@ async function procesarCalendar() {
   }
 
   document.getElementById('cal-results').classList.remove('hidden');
-  toast(`${count} eventos encontrados (${filtered.length - count} duplicados omitidos)`, 'success');
+  const nuevos = count - dups;
+  toast(`${count} eventos: ${nuevos} nuevos${dups ? `, ${dups} ya cargados` : ''}`, 'success');
 }
 
 function calSelectPaciente(select) {
