@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
   document.getElementById('pac-activo-desde').addEventListener('change', loadPacientesTable);
   document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
+    document.getElementById('pac-buscar').value = '';
     document.getElementById('pac-solo-saldo').checked = false;
     document.getElementById('pac-activo-desde').value = '';
     loadPacientesTable();
