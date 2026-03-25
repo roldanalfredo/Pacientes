@@ -1295,8 +1295,8 @@ async function procesarCalendar() {
     if (ev.status && ev.status !== 'CONFIRMED') return false;
     if (!ev.date || !ev.summary) return false;
     if (desde && ev.date < desde) return false;
-    const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
-    if (ev.date > ayer.toISOString().split('T')[0]) return false;
+    const hoy = new Date().toISOString().split('T')[0];
+    if (ev.date > hoy) return false;
     return true;
   }).sort((a, b) => a.date.localeCompare(b.date));
 
