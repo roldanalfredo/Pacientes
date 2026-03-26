@@ -621,6 +621,7 @@ td:nth-child(n+4):not(:last-child) {
   border-radius: 10px;
   box-shadow: var(--shadow);
   margin-bottom: 1rem;
+  overflow: hidden;
 }
 
 #panel-sesion {
@@ -646,6 +647,31 @@ td:nth-child(n+4):not(:last-child) {
   background: #219a52;
 }
 
+.form-panel .form-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.form-panel .form-row .form-group {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+}
+
+.form-panel .form-row .form-group label {
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.form-panel .form-row .form-group input,
+.form-panel .form-row .form-group select {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  width: auto;
+}
+
 .form-panel h3 {
   font-size: 1rem;
   margin-bottom: 0.5rem;
@@ -657,6 +683,8 @@ td:nth-child(n+4):not(:last-child) {
   gap: 0.75rem;
   align-items: flex-end;
   flex-wrap: wrap;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .form-inline .form-group {
@@ -674,6 +702,15 @@ td:nth-child(n+4):not(:last-child) {
 .form-inline .form-group select {
   padding: 0.4rem 0.5rem;
   font-size: 0.85rem;
+}
+
+.btn-group-inline {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-group-inline button {
+  white-space: nowrap;
 }
 
 

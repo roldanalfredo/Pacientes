@@ -236,32 +236,40 @@
 
         <div id="panel-sesion" class="form-panel hidden">
           <h3>Cargar Sesión</h3>
-          <form id="form-sesion" class="form-inline">
-            <div class="form-group"><label>Fecha</label><input type="date" id="sesion-fecha" required></div>
-            <div class="form-group"><label>Paciente</label><select id="sesion-paciente" required><option value="">Seleccionar...</option></select></div>
-            <div class="form-group"><label>Valor</label><input type="text" id="sesion-valor" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Moneda</label><input type="text" id="sesion-moneda" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Origen</label><input type="text" id="sesion-origen" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Obs.</label><input type="text" id="sesion-obs" placeholder="Observaciones"></div>
-            <div class="form-group"><label>&nbsp;</label><button type="submit" class="btn-primary">Guardar</button> <button type="button" class="btn-secondary btn-cancelar-panel">Cancelar</button></div>
+          <form id="form-sesion">
+            <div class="form-row">
+              <div class="form-group"><label>Fecha</label><input type="date" id="sesion-fecha" required></div>
+              <div class="form-group"><label>Paciente</label><select id="sesion-paciente" required><option value="">Seleccionar...</option></select></div>
+              <div class="form-group"><label>Valor</label><input type="text" id="sesion-valor" readonly tabindex="-1" class="readonly"></div>
+              <div class="form-group"><label>Moneda</label><input type="text" id="sesion-moneda" readonly tabindex="-1" class="readonly"></div>
+              <div class="form-group"><label>Origen</label><input type="text" id="sesion-origen" readonly tabindex="-1" class="readonly"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Obs.</label><input type="text" id="sesion-obs" placeholder="Observaciones"></div>
+              <div class="form-group"><label>&nbsp;</label><div class="btn-group-inline"><button type="submit" class="btn-primary">Guardar</button><button type="button" class="btn-secondary btn-cancelar-panel">Cancelar</button></div></div>
+            </div>
           </form>
         </div>
 
         <div id="panel-pago" class="form-panel hidden">
           <h3>Cargar Pago</h3>
-          <form id="form-pago" class="form-inline">
-            <div class="form-group"><label>Fecha</label><input type="date" id="pago-fecha" required></div>
-            <div class="form-group"><label>Paciente</label><select id="pago-paciente" required><option value="">Seleccionar...</option></select></div>
-            <div class="form-group"><label>Valor sesión</label><input type="text" id="pago-valor-sesion" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Moneda</label><input type="text" id="pago-moneda" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Origen</label><input type="text" id="pago-origen" readonly tabindex="-1" class="readonly"></div>
-            <div class="form-group"><label>Monto pago</label><input type="number" id="pago-monto" step="0.01" required></div>
-            <div class="form-group hidden" id="pago-conv-group">
-              <label><input type="checkbox" id="pago-convertido"> Recibido en pesos</label>
-              <input type="number" id="pago-pesos" step="0.01" placeholder="Monto en $" class="hidden">
+          <form id="form-pago">
+            <div class="form-row">
+              <div class="form-group"><label>Fecha</label><input type="date" id="pago-fecha" required></div>
+              <div class="form-group"><label>Paciente</label><select id="pago-paciente" required><option value="">Seleccionar...</option></select></div>
+              <div class="form-group"><label>Valor sesión</label><input type="text" id="pago-valor-sesion" readonly tabindex="-1" class="readonly"></div>
+              <div class="form-group"><label>Moneda</label><input type="text" id="pago-moneda" readonly tabindex="-1" class="readonly"></div>
+              <div class="form-group"><label>Origen</label><input type="text" id="pago-origen" readonly tabindex="-1" class="readonly"></div>
             </div>
-            <div class="form-group"><label>Obs.</label><input type="text" id="pago-obs" placeholder="Observaciones"></div>
-            <div class="form-group"><label>&nbsp;</label><button type="submit" class="btn-primary">Guardar</button> <button type="button" class="btn-secondary btn-cancelar-panel">Cancelar</button></div>
+            <div class="form-row">
+              <div class="form-group"><label>Monto pago</label><input type="number" id="pago-monto" step="0.01" required></div>
+              <div class="form-group hidden" id="pago-conv-group">
+                <label><input type="checkbox" id="pago-convertido"> Recibido en pesos</label>
+                <input type="number" id="pago-pesos" step="0.01" placeholder="Monto en $" class="hidden">
+              </div>
+              <div class="form-group"><label>Obs.</label><input type="text" id="pago-obs" placeholder="Observaciones"></div>
+              <div class="form-group"><label>&nbsp;</label><div class="btn-group-inline"><button type="submit" class="btn-primary">Guardar</button><button type="button" class="btn-secondary btn-cancelar-panel">Cancelar</button></div></div>
+            </div>
           </form>
         </div>
 
