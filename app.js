@@ -70,6 +70,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pago-pesos').classList.toggle('hidden', !this.checked);
   });
 
+  // Dashboard cards clickeables
+  document.querySelectorAll('.card-link').forEach(card => {
+    card.addEventListener('click', () => {
+      const section = card.dataset.goto;
+      if (section === 'registros') {
+        const rm = document.getElementById('reg-filtro-mes');
+        document.getElementById('reg-filtro-accion').value = card.dataset.accion || '';
+        document.getElementById('reg-filtro-paciente').value = '';
+        if (card.dataset.mes === 'current') {
+          const t = todayLocal();
+          rm.value = t.substring(0, 7);
+          rm.classList.remove('empty-month');
+        } else {
+          rm.value = '';
+          rm.classList.add('empty-month');
+        }
+      }
+      navigateTo(section);
+    });
+  });
+
   // Pacientes ABM
   document.getElementById('btn-nuevo-paciente').addEventListener('click', () => openPacienteModal());
   document.getElementById('btn-cancelar-paciente').addEventListener('click', closePacienteModal);
@@ -85,8 +106,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('reg-next').addEventListener('click', () => { regPage++; loadRegistros(); });
   document.getElementById('btn-filtrar-reg').addEventListener('click', () => { regPage = 0; loadRegistros(); });
 
-  // Mirrors init
-  initMirrors();
+  // Toggle panels sesion/pago
+  document.getElementById('btn-toggle-sesion').addEventListener('click', () => {
+    const panel = document.getElementById('panel-sesion');
+    const pagoPanel = document.getElementById('panel-pago');
+    pagoPanel.classList.add('hidden');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) document.getElementById('sesion-fecha').focus();
+  });
+  document.getElementById('btn-toggle-pago').addEventListener('click', () => {
+    const panel = document.getElementById('panel-pago');
+    const sesionPanel = document.getElementById('panel-sesion');
+    sesionPanel.classList.add('hidden');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) document.getElementById('pago-fecha').focus();
+  });
+
+  // Cancelar paneles sesion/pago
+  document.querySelectorAll('.btn-cancelar-panel').forEach(btn => {
+    btn.addEventListener('click', () => btn.closest('.form-panel').classList.add('hidden'));
+  });
 
   // ETL
   document.getElementById('btn-procesar-etl').addEventListener('click', procesarETL);
@@ -95,19 +134,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ETL Calendar
   const mesAtras = new Date();
   mesAtras.setMonth(mesAtras.getMonth() - 1);
-  document.getElementById('cal-desde').value = mesAtras.toISOString().split('T')[0];
+  const ma = mesAtras;
+  document.getElementById('cal-desde').value = ma.getFullYear() + '-' + String(ma.getMonth() + 1).padStart(2, '0') + '-' + String(ma.getDate()).padStart(2, '0');
   document.getElementById('btn-procesar-cal').addEventListener('click', procesarCalendar);
   document.getElementById('btn-cargar-cal').addEventListener('click', cargarCalendar);
 
   // Pacientes filtros
   document.getElementById('pac-buscar').addEventListener('input', loadPacientesTable);
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
-  document.getElementById('pac-activo-desde').addEventListener('change', loadPacientesTable);
+  const activoDesde = document.getElementById('pac-activo-desde');
+  activoDesde.classList.add('empty-month');
+  activoDesde.addEventListener('change', function() {
+    this.classList.toggle('empty-month', !this.value);
+    loadPacientesTable();
+  });
   document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
     document.getElementById('pac-buscar').value = '';
     document.getElementById('pac-solo-saldo').checked = false;
-    document.getElementById('pac-activo-desde').value = '';
+    activoDesde.value = '';
+    activoDesde.classList.add('empty-month');
     loadPacientesTable();
+  });
+
+  // Registros limpiar filtros
+  const regMes = document.getElementById('reg-filtro-mes');
+  regMes.classList.add('empty-month');
+  regMes.addEventListener('change', function() {
+    this.classList.toggle('empty-month', !this.value);
+  });
+  document.getElementById('btn-limpiar-filtros-reg').addEventListener('click', () => {
+    document.getElementById('reg-filtro-accion').value = '';
+    document.getElementById('reg-filtro-paciente').value = '';
+    regMes.value = '';
+    regMes.classList.add('empty-month');
+    document.getElementById('btn-filtrar-reg').click();
   });
 
   // Set default date to today
@@ -215,14 +275,6 @@ function navigateTo(section) {
   if (section === 'dashboard') loadDashboard();
   if (section === 'pacientes') loadPacientesTable();
   if (section === 'registros') { regPage = 0; loadRegistros(); }
-  if (section === 'cargar-sesion') {
-    document.getElementById('sesion-fecha').focus();
-    loadRegistrosMirror('sec-cargar-sesion');
-  }
-  if (section === 'cargar-pago') {
-    document.getElementById('pago-fecha').focus();
-    loadRegistrosMirror('sec-cargar-pago');
-  }
   if (section === 'cargar-psico') document.getElementById('psico-tipo').focus();
 }
 
@@ -266,7 +318,7 @@ async function handleSesion(e) {
   document.getElementById('sesion-valor').value = '';
   document.getElementById('sesion-moneda').value = '';
   document.getElementById('sesion-origen').value = '';
-  loadRegistrosMirror('sec-cargar-sesion');
+  loadRegistros();
   document.getElementById('sesion-fecha').focus();
 }
 
@@ -331,7 +383,10 @@ async function handlePago(e) {
   document.getElementById('pago-valor-sesion').value = '';
   document.getElementById('pago-moneda').value = '';
   document.getElementById('pago-origen').value = '';
-  loadRegistrosMirror('sec-cargar-pago');
+  document.getElementById('pago-conv-group').classList.add('hidden');
+  document.getElementById('pago-convertido').checked = false;
+  document.getElementById('pago-pesos').classList.add('hidden');
+  loadRegistros();
   document.getElementById('pago-fecha').focus();
 }
 
@@ -567,11 +622,6 @@ window.deleteRegistro = async function(id) {
   toast('Registro eliminado', 'success');
   invalidateDashboard();
   loadRegistros();
-  // Refrescar tablas espejo si están visibles
-  const secSesion = document.getElementById('sec-cargar-sesion');
-  const secPago = document.getElementById('sec-cargar-pago');
-  if (secSesion && secSesion.classList.contains('active')) loadRegistrosMirror('sec-cargar-sesion');
-  if (secPago && secPago.classList.contains('active')) loadRegistrosMirror('sec-cargar-pago');
 };
 
 window.deletePaciente = async function(id, nombre) {
@@ -915,97 +965,7 @@ function toggleYear(containerId, year) {
 // =============================================
 // REGISTROS MIRROR (bajo formularios de carga)
 // =============================================
-const mirrorPages = {};
 
-function initMirrors() {
-  document.querySelectorAll('.btn-filtrar-mirror').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const section = btn.closest('.section').id;
-      mirrorPages[section] = 0;
-      loadRegistrosMirror(section);
-    });
-  });
-  document.querySelectorAll('.reg-prev-mirror').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const section = btn.closest('.section').id;
-      mirrorPages[section] = (mirrorPages[section] || 0) - 1;
-      loadRegistrosMirror(section);
-    });
-  });
-  document.querySelectorAll('.reg-next-mirror').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const section = btn.closest('.section').id;
-      mirrorPages[section] = (mirrorPages[section] || 0) + 1;
-      loadRegistrosMirror(section);
-    });
-  });
-}
-
-async function loadRegistrosMirror(sectionId) {
-  const section = document.getElementById(sectionId);
-  const page = mirrorPages[sectionId] || 0;
-
-  let query = db
-    .from('registros')
-    .select('*, pacientes(nombre)', { count: 'exact' })
-    .order('fecha', { ascending: false })
-    .range(page * REG_PAGE_SIZE, (page + 1) * REG_PAGE_SIZE - 1);
-
-  const accion = section.querySelector('.reg-filtro-accion-mirror')?.value;
-  if (accion) query = query.eq('accion', accion);
-
-  const pacId = section.querySelector('.reg-filtro-paciente-mirror')?.value;
-  if (pacId) query = query.eq('paciente_id', parseInt(pacId));
-
-  const mes = section.querySelector('.reg-filtro-mes-mirror')?.value;
-  if (mes) {
-    const start = mes + '-01';
-    const endDate = new Date(parseInt(mes.split('-')[0]), parseInt(mes.split('-')[1]), 0);
-    const end = endDate.toISOString().split('T')[0];
-    query = query.gte('fecha', start).lte('fecha', end);
-  }
-
-  const { data, count, error } = await query;
-  if (error) { toast('Error: ' + error.message, 'error'); return; }
-
-  const tbody = section.querySelector('.tabla-registros-mirror tbody');
-  tbody.innerHTML = '';
-
-  (data || []).forEach(r => {
-    const tr = document.createElement('tr');
-    const dolarClass = r.moneda === 'DÓLAR' ? ' class="cel-dolar"' : '';
-    tr.innerHTML = `
-      <td>${formatDate(r.fecha)}</td>
-      <td>${esc(r.pacientes?.nombre || '?')}</td>
-      <td>${esc(r.accion)}</td>
-      <td${dolarClass}>${r.valor_sesion ? formatNum(r.valor_sesion) : ''}</td>
-      <td${dolarClass}>${r.valor_pago ? formatNum(r.valor_pago) : ''}</td>
-      <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>
-      <td${dolarClass}>${esc(r.moneda || '')}</td>
-      <td>${esc(r.origen || '')}</td>
-      <td>${esc(r.observaciones || '')}</td>
-      <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  const totalPages = Math.ceil((count || 0) / REG_PAGE_SIZE);
-  const pageInfo = section.querySelector('.reg-page-info-mirror');
-  pageInfo.textContent = `Página ${page + 1} de ${totalPages || 1}`;
-  section.querySelector('.reg-prev-mirror').disabled = page === 0;
-  section.querySelector('.reg-next-mirror').disabled = page >= totalPages - 1;
-
-  // Poblar combo de pacientes si está vacío
-  const pacSelect = section.querySelector('.reg-filtro-paciente-mirror');
-  if (pacSelect.options.length <= 1) {
-    pacientesCache.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.nombre;
-      pacSelect.appendChild(opt);
-    });
-  }
-}
 
 // =============================================
 // ETL BANCARIO
