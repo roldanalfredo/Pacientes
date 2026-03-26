@@ -1240,19 +1240,75 @@ async function cargarETL() {
 // ETL CALENDAR
 // =============================================
 
+function parseICSDate(val) {
+  return val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6, 8);
+}
+
+function expandRRULE(dtstart, rrule, exdates) {
+  const parts = {};
+  rrule.split(';').forEach(p => { const [k, v] = p.split('='); parts[k] = v; });
+  const freq = parts.FREQ;
+  if (freq !== 'WEEKLY' && freq !== 'DAILY') return []; // solo expandimos WEEKLY y DAILY
+
+  const interval = parseInt(parts.INTERVAL || '1');
+  const start = new Date(dtstart + 'T00:00:00');
+  const today = new Date(); today.setHours(23, 59, 59);
+  const dates = [];
+
+  let until = today;
+  if (parts.UNTIL) {
+    const u = parseICSDate(parts.UNTIL);
+    const untilDate = new Date(u + 'T23:59:59');
+    if (untilDate < until) until = untilDate;
+  }
+  const maxCount = parts.COUNT ? parseInt(parts.COUNT) : 5000;
+
+  const msPerDay = 86400000;
+  const step = freq === 'WEEKLY' ? 7 * interval : interval;
+  let current = new Date(start);
+  let count = 0;
+
+  while (current <= until && count < maxCount) {
+    const d = current.toISOString().split('T')[0];
+    if (!exdates.has(d)) dates.push(d);
+    current = new Date(current.getTime() + step * msPerDay);
+    count++;
+  }
+  return dates;
+}
+
 function parseICS(text) {
   const events = [];
   const lines = text.replace(/\r\n /g, '').replace(/\r/g, '').split('\n');
   let ev = null;
   for (const line of lines) {
-    if (line === 'BEGIN:VEVENT') { ev = {}; continue; }
-    if (line === 'END:VEVENT') { if (ev) events.push(ev); ev = null; continue; }
+    if (line === 'BEGIN:VEVENT') { ev = { exdates: new Set() }; continue; }
+    if (line === 'END:VEVENT') {
+      if (ev) {
+        if (ev.rrule && ev.date) {
+          // Expandir evento recurrente en múltiples eventos
+          const occurrences = expandRRULE(ev.date, ev.rrule, ev.exdates);
+          for (const d of occurrences) {
+            events.push({ summary: ev.summary, date: d, status: ev.status });
+          }
+        } else {
+          events.push({ summary: ev.summary, date: ev.date, status: ev.status });
+        }
+      }
+      ev = null;
+      continue;
+    }
     if (!ev) continue;
     if (line.startsWith('SUMMARY:')) ev.summary = line.substring(8);
     if (line.startsWith('DTSTART')) {
       const val = line.split(':').pop();
-      // Format: 20221011T170000 or 20221011T170000Z
-      ev.date = val.substring(0, 4) + '-' + val.substring(4, 6) + '-' + val.substring(6, 8);
+      ev.date = parseICSDate(val);
+    }
+    if (line.startsWith('RRULE:')) ev.rrule = line.substring(6);
+    if (line.startsWith('EXDATE')) {
+      const val = line.split(':').pop();
+      // Puede tener múltiples fechas separadas por coma
+      val.split(',').forEach(d => ev.exdates.add(parseICSDate(d.trim())));
     }
     if (line.startsWith('STATUS:')) ev.status = line.substring(7);
   }
