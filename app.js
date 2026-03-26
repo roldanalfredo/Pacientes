@@ -9,6 +9,10 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // =============================================
 // STATE
 // =============================================
+function todayLocal() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 let pacientesCache = [];
 let tiposPsicoCache = [];
 let regPage = 0;
@@ -107,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Set default date to today
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   document.getElementById('sesion-fecha').value = today;
   document.getElementById('pago-fecha').value = today;
   document.getElementById('psico-fecha-cita').value = today;
@@ -257,7 +261,7 @@ async function handleSesion(e) {
   toast('Sesión guardada', 'success');
   invalidateDashboard();
   document.getElementById('form-sesion').reset();
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   document.getElementById('sesion-fecha').value = today;
   document.getElementById('sesion-valor').value = '';
   document.getElementById('sesion-moneda').value = '';
@@ -322,7 +326,7 @@ async function handlePago(e) {
   toast('Pago guardado', 'success');
   invalidateDashboard();
   document.getElementById('form-pago').reset();
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   document.getElementById('pago-fecha').value = today;
   document.getElementById('pago-valor-sesion').value = '';
   document.getElementById('pago-moneda').value = '';
@@ -384,7 +388,7 @@ async function handlePsico(e) {
   toast('Psicotécnico guardado', 'success');
   invalidateDashboard();
   document.getElementById('form-psico').reset();
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   document.getElementById('psico-fecha-cita').value = today;
   document.getElementById('psico-valor').value = '';
   document.getElementById('psico-moneda').value = '';
@@ -1351,7 +1355,7 @@ async function procesarCalendar() {
     if (ev.status && ev.status !== 'CONFIRMED') return false;
     if (!ev.date || !ev.summary) return false;
     if (desde && ev.date < desde) return false;
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = todayLocal();
     if (ev.date > hoy) return false;
     return true;
   }).sort((a, b) => a.date.localeCompare(b.date));
@@ -1381,6 +1385,7 @@ async function procesarCalendar() {
 
   function esDudoso(summary) {
     const s = normalize(summary);
+    if (s.startsWith('appointment')) return false;
     if (s.split(/\s+/).length > 4) return true;
     if (dudosoKeywords.some(k => s.includes(k))) return true;
     return false;
@@ -1388,9 +1393,9 @@ async function procesarCalendar() {
 
   let count = 0, dups = 0;
   for (const ev of filtered) {
-    const pac = matchPaciente(ev.summary);
+    const dudoso = esDudoso(ev.summary);
+    const pac = dudoso ? null : matchPaciente(ev.summary);
     const isDuplicate = pac && existingSet.has(ev.date + '|' + pac.id);
-    const dudoso = !pac && esDudoso(ev.summary);
 
     count++;
     const tr = document.createElement('tr');
