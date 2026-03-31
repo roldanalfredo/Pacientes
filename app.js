@@ -1341,7 +1341,7 @@ async function procesarCalendar() {
 
   const dudosoKeywords = ['turno', 'reunión', 'reunion', 'cumple', 'feriado', 'devolución', 'devolucion',
     'entrevista', 'hacer', 'ver ', 'enviar', 'llamar', 'comprar', 'pagar', 'cobrar', 'supervisión',
-    'supervision', 'vacaciones', 'viaje', 'médico', 'medico', 'dentista', 'control', 'guardia'];
+    'supervision', 'vacaciones', 'viaje', 'médico', 'medico', 'dentista', 'control', 'guardia', 'Bagó', 'Bago'];
 
   function esDudoso(summary) {
     const s = normalize(summary);
