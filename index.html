@@ -45,6 +45,7 @@
       <button class="nav-btn" data-section="registros">Registros</button>
       <button class="nav-btn" data-section="etl">ETL Bancario</button>
       <button class="nav-btn" data-section="etl-calendar">ETL Calendar</button>
+      <button class="nav-btn" data-section="facturacion">Facturación</button>
     </nav>
 
     <!-- Main Content -->
@@ -200,8 +201,28 @@
                 </div>
               </div>
               <div class="form-group">
-                <label>DNI Banco</label>
+                <label>CUIT/CUIL</label>
                 <input type="text" id="pac-dni" placeholder="Para identificar en extracto bancario">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>DNI</label>
+                  <input type="text" id="pac-dni-paciente" placeholder="Número de documento">
+                </div>
+                <div class="form-group">
+                  <label>Cobertura</label>
+                  <input type="text" id="pac-cobertura" placeholder="Obra social / prepaga">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Plan</label>
+                  <input type="text" id="pac-plan" placeholder="Tipo de plan">
+                </div>
+                <div class="form-group">
+                  <label>N° Afiliado</label>
+                  <input type="text" id="pac-nro-afiliado" placeholder="Número de afiliado">
+                </div>
               </div>
               <div class="form-group">
                 <label>Fecha de inicio</label>
@@ -371,6 +392,32 @@
           <div class="form-actions">
             <button id="btn-cargar-cal" class="btn-primary">Cargar Sesiones Seleccionadas</button>
           </div>
+        </div>
+      </section>
+
+      <!-- FACTURACIÓN -->
+      <section id="sec-facturacion" class="section">
+        <h2>Facturación</h2>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Paciente</label>
+              <select id="fact-paciente"><option value="">Seleccionar...</option></select>
+            </div>
+            <div class="form-group">
+              <label>Mes</label>
+              <input type="month" id="fact-mes">
+            </div>
+            <div class="form-group" style="align-self:flex-end">
+              <button id="btn-generar-factura" class="btn-primary">Generar</button>
+            </div>
+          </div>
+        </div>
+        <div id="fact-result" class="hidden">
+          <div class="form-actions" style="margin-bottom:0.5rem">
+            <button id="btn-copiar-factura" class="btn-secondary">Copiar texto</button>
+          </div>
+          <textarea id="fact-texto" rows="12" readonly style="width:100%;font-family:monospace;font-size:0.95rem;padding:1rem;border:1px solid #ccc;border-radius:6px;resize:vertical;background:#f9f9f9"></textarea>
         </div>
       </section>
     </main>

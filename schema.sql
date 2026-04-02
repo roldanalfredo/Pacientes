@@ -13,6 +13,10 @@ CREATE TABLE pacientes (
   origen TEXT,
   estado TEXT DEFAULT 'Activo',
   dni_banco TEXT,
+  dni TEXT,
+  cobertura TEXT,
+  plan TEXT,
+  nro_afiliado TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

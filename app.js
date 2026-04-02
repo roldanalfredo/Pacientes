@@ -139,6 +139,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-procesar-cal').addEventListener('click', procesarCalendar);
   document.getElementById('btn-cargar-cal').addEventListener('click', cargarCalendar);
 
+  // Facturación
+  document.getElementById('btn-generar-factura').addEventListener('click', generarTextoFactura);
+  document.getElementById('btn-copiar-factura').addEventListener('click', () => {
+    const ta = document.getElementById('fact-texto');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => toast('Texto copiado', 'success'));
+  });
+
   // Pacientes filtros
   document.getElementById('pac-buscar').addEventListener('input', loadPacientesTable);
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
@@ -234,7 +242,7 @@ async function loadTiposPsico() {
 }
 
 function populateSelects() {
-  const selects = ['sesion-paciente', 'pago-paciente', 'reg-filtro-paciente'];
+  const selects = ['sesion-paciente', 'pago-paciente', 'reg-filtro-paciente', 'fact-paciente'];
   selects.forEach(id => {
     const sel = document.getElementById(id);
     const firstOption = sel.options[0];
@@ -542,6 +550,10 @@ function openPacienteModal(paciente = null) {
     document.getElementById('pac-origen').value = paciente.origen || '';
     document.getElementById('pac-estado').value = paciente.estado || 'Activo';
     document.getElementById('pac-dni').value = paciente.dni_banco || '';
+    document.getElementById('pac-dni-paciente').value = paciente.dni || '';
+    document.getElementById('pac-cobertura').value = paciente.cobertura || '';
+    document.getElementById('pac-plan').value = paciente.plan || '';
+    document.getElementById('pac-nro-afiliado').value = paciente.nro_afiliado || '';
     document.getElementById('pac-fecha-inicio').value = paciente.fecha_inicio || '';
   } else {
     document.getElementById('form-paciente').reset();
@@ -655,6 +667,10 @@ async function handleSavePaciente(e) {
     origen: document.getElementById('pac-origen').value.trim() || null,
     estado: document.getElementById('pac-estado').value,
     dni_banco: document.getElementById('pac-dni').value.trim() || null,
+    dni: document.getElementById('pac-dni-paciente').value.trim() || null,
+    cobertura: document.getElementById('pac-cobertura').value.trim() || null,
+    plan: document.getElementById('pac-plan').value.trim() || null,
+    nro_afiliado: document.getElementById('pac-nro-afiliado').value.trim() || null,
     fecha_inicio: document.getElementById('pac-fecha-inicio').value || null
   };
 
@@ -1486,6 +1502,53 @@ function formatMonth(d) {
   const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   return `${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// =============================================
+// FACTURACIÓN
+// =============================================
+async function generarTextoFactura() {
+  const pacienteId = parseInt(document.getElementById('fact-paciente').value);
+  const mes = document.getElementById('fact-mes').value;
+
+  if (!pacienteId) { toast('Seleccioná un paciente', 'error'); return; }
+  if (!mes) { toast('Seleccioná un mes', 'error'); return; }
+
+  const pac = pacientesCache.find(p => p.id === pacienteId);
+  if (!pac) { toast('Paciente no encontrado', 'error'); return; }
+
+  const desde = mes + '-01';
+  const hasta = mes + '-31';
+
+  const { data, error } = await db
+    .from('registros')
+    .select('fecha')
+    .eq('paciente_id', pacienteId)
+    .eq('accion', 'SESION')
+    .gte('fecha', desde)
+    .lte('fecha', hasta)
+    .order('fecha');
+
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  if (!data || data.length === 0) { toast('No hay sesiones en ese mes', 'error'); return; }
+
+  const fechas = data.map(r => {
+    const [y, m, d] = r.fecha.split('-');
+    return `${d}/${m}/${y}`;
+  }).join(', ');
+
+  const lines = [
+    'Honorarios profesionales por sesiones individuales de psicología en las fechas:',
+    fechas,
+    pac.nombre,
+  ];
+  if (pac.dni) lines.push(`DNI: ${pac.dni}`);
+  if (pac.cobertura) lines.push(`Cobertura: ${pac.cobertura}`);
+  if (pac.plan) lines.push(`Plan: ${pac.plan}`);
+  if (pac.nro_afiliado) lines.push(`N° Afiliado: ${pac.nro_afiliado}`);
+
+  document.getElementById('fact-texto').value = lines.join('\n');
+  document.getElementById('fact-result').classList.remove('hidden');
 }
 
 function toast(msg, type = 'success') {
