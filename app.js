@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-limpiar-filtros-reg').addEventListener('click', () => {
     document.getElementById('reg-filtro-accion').value = '';
     document.getElementById('reg-filtro-paciente').value = '';
+    document.getElementById('reg-filtro-moneda').value = '';
     regMes.value = '';
     regMes.classList.add('empty-month');
     document.getElementById('btn-filtrar-reg').click();
@@ -705,6 +706,9 @@ async function loadRegistros() {
 
   const pacId = document.getElementById('reg-filtro-paciente').value;
   if (pacId) query = query.eq('paciente_id', parseInt(pacId));
+
+  const moneda = document.getElementById('reg-filtro-moneda').value;
+  if (moneda) query = query.eq('moneda', moneda);
 
   const mes = document.getElementById('reg-filtro-mes').value;
   if (mes) {
