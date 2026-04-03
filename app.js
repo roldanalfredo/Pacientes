@@ -828,7 +828,7 @@ async function loadDashboardCards() {
     .reduce((s, r) => s + (r.valor_pago || 0), 0);
   const cobrPesosConversion = (pagos || []).filter(r => r.pesos_recibidos)
     .reduce((s, r) => s + (r.pesos_recibidos || 0), 0);
-  const cobrUsd = (pagos || []).filter(r => r.moneda === 'DÓLAR')
+  const cobrUsd = (pagos || []).filter(r => r.moneda === 'DÓLAR' && !r.pesos_recibidos)
     .reduce((s, r) => s + (r.valor_pago || 0), 0);
   document.getElementById('stat-cobr-pesos').textContent = '$ ' + fmt(cobrPesos + cobrPesosConversion);
   document.getElementById('stat-cobr-usd').textContent = 'US$ ' + fmt(cobrUsd);
