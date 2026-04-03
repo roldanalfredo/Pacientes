@@ -754,6 +754,22 @@ td:nth-child(n+4):not(:last-child) {
   tbody { display: table; width: 100%; table-layout: auto; }
   th, td { padding: 0.4rem 0.5rem; font-size: 0.8rem; }
 
+  /* Registros: ocultar columnas menos críticas en mobile */
+  .col-moneda, .col-origen, .col-obs { display: none; }
+
+  /* Wrapper scrollable para tabla registros */
+  .tabla-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+  #tabla-registros { display: table; table-layout: fixed; width: 630px; white-space: nowrap; }
+  #tabla-registros th:nth-child(1), #tabla-registros td:nth-child(1) { width: 80px; }
+  #tabla-registros th:nth-child(2) { width: 160px; }
+  #tabla-registros td:nth-child(2) { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tabla-registros th:nth-child(3), #tabla-registros td:nth-child(3) { width: 60px; }
+  #tabla-registros th:nth-child(4), #tabla-registros td:nth-child(4) { width: 60px; }
+  #tabla-registros th:nth-child(5), #tabla-registros td:nth-child(5) { width: 60px; }
+  #tabla-registros th:nth-child(6), #tabla-registros td:nth-child(6) { width: 60px; }
+  #tabla-registros th:nth-child(7), #tabla-registros td:nth-child(7) { width: 70px; }
+  #tabla-registros th:last-child,   #tabla-registros td:last-child   { width: 60px; }
+
   /* Modal */
   .modal-content { width: 95vw; padding: 1.25rem; }
 

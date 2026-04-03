@@ -308,14 +308,16 @@
           <button id="btn-limpiar-filtros-reg" class="btn-secondary" title="Limpiar filtros">✕</button>
         </div>
         <div id="registros-count" class="count-info"></div>
+        <div class="tabla-scroll-wrap">
         <table id="tabla-registros">
           <thead>
             <tr>
-              <th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>$ Rec.</th><th>Moneda</th><th>Origen</th><th>Saldo</th><th>Obs.</th><th></th>
+              <th>Fecha</th><th>Paciente</th><th>Acción</th><th>Sesión</th><th>Pago</th><th>$ Rec.</th><th class="col-moneda">Moneda</th><th class="col-origen">Origen</th><th>Saldo</th><th class="col-obs">Obs.</th><th></th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+        </div>
         <div class="pagination">
           <button id="reg-prev" class="btn-secondary" disabled>← Anterior</button>
           <span id="reg-page-info"></span>

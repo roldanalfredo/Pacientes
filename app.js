@@ -754,10 +754,10 @@ async function loadRegistros() {
       <td${dolarClass}>${r.valor_sesion ? formatNum(r.valor_sesion) : ''}</td>
       <td${dolarClass}>${r.valor_pago ? formatNum(r.valor_pago) : ''}</td>
       <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>
-      <td${dolarClass}>${esc(r.moneda || '')}</td>
-      <td>${esc(r.origen || '')}</td>
+      <td class="col-moneda${r.moneda === 'DÓLAR' ? ' cel-dolar' : ''}">${esc(r.moneda || '')}</td>
+      <td class="col-origen">${esc(r.origen || '')}</td>
       <td style="${saldoClass}">${saldo != null ? formatNum(saldo) : ''}</td>
-      <td>${esc(r.observaciones || '')}</td>
+      <td class="col-obs">${esc(r.observaciones || '')}</td>
       <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
     `;
     tbody.appendChild(tr);
