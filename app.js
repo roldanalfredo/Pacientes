@@ -863,13 +863,13 @@ async function loadPivotData() {
   const dolares = pivotData.filter(r => r.moneda === 'DÓLAR');
   const psico = pivotData.filter(r => r.is_psico);
   const freelance = pivotData.filter(r => r.origen === 'Free lance');
-  const total = pivotData;
+  const totalPesos = pivotData.filter(r => r.moneda === 'PESO');
 
   renderPivotTable('pivot-pesos', pesos);
   renderPivotTable('pivot-dolares', dolares);
   renderPivotTable('pivot-psico', psico);
   renderPivotTable('pivot-freelance', freelance);
-  renderPivotTable('pivot-total', total);
+  renderPivotTable('pivot-total', totalPesos);
 
   // Frankie: buscar por nombre y cargar su pivot individual
   const frankie = pacientesCache.find(p => p.nombre.toLowerCase().includes('frankie'));
