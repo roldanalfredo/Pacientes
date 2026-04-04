@@ -141,6 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Facturación
   document.getElementById('btn-generar-factura').addEventListener('click', generarTextoFactura);
+  document.getElementById('btn-generar-todos').addEventListener('click', generarTodosFactura);
   document.getElementById('btn-copiar-factura').addEventListener('click', () => {
     const ta = document.getElementById('fact-texto');
     ta.select();
@@ -186,6 +187,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('sesion-fecha').value = today;
   document.getElementById('pago-fecha').value = today;
   document.getElementById('psico-fecha-cita').value = today;
+
+  // Facturación: mes anterior por defecto
+  const mesAnterior = new Date();
+  mesAnterior.setMonth(mesAnterior.getMonth() - 1);
+  document.getElementById('fact-mes').value =
+    mesAnterior.getFullYear() + '-' + String(mesAnterior.getMonth() + 1).padStart(2, '0');
 });
 
 // =============================================
@@ -1565,7 +1572,7 @@ async function generarTextoFactura() {
   const lines = [
     'Honorarios profesionales por sesiones individuales de psicología en las fechas:',
     fechas,
-    pac.nombre,
+    pac.nombre.toUpperCase(),
   ];
   if (pac.dni) lines.push(`DNI: ${pac.dni}`);
   if (pac.cobertura) lines.push(`Cobertura: ${pac.cobertura}`);
@@ -1574,6 +1581,59 @@ async function generarTextoFactura() {
 
   document.getElementById('fact-texto').value = lines.join('\n');
   document.getElementById('fact-result').classList.remove('hidden');
+}
+
+async function generarTodosFactura() {
+  const mes = document.getElementById('fact-mes').value;
+  if (!mes) { toast('Seleccioná un mes', 'error'); return; }
+
+  const pacientes = pacientesCache.filter(p =>
+    p.estado === 'Activo' && p.cobertura && p.cobertura.trim()
+  );
+  if (!pacientes.length) { toast('No hay pacientes con cobertura', 'error'); return; }
+
+  const desde = mes + '-01';
+  const hasta = mes + '-31';
+
+  const { data, error } = await db
+    .from('registros')
+    .select('fecha, paciente_id')
+    .in('paciente_id', pacientes.map(p => p.id))
+    .eq('accion', 'SESION')
+    .gte('fecha', desde)
+    .lte('fecha', hasta)
+    .order('fecha');
+
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+
+  const sesionesPorPac = {};
+  (data || []).forEach(r => {
+    if (!sesionesPorPac[r.paciente_id]) sesionesPorPac[r.paciente_id] = [];
+    sesionesPorPac[r.paciente_id].push(r.fecha);
+  });
+
+  const bloques = [];
+  pacientes.forEach(pac => {
+    const sesiones = sesionesPorPac[pac.id];
+    if (!sesiones || !sesiones.length) return;
+    const fechas = sesiones.map(f => { const [y,m,d] = f.split('-'); return `${d}/${m}/${y}`; }).join(', ');
+    const lines = [
+      'Honorarios profesionales por sesiones individuales de psicología en las fechas:',
+      fechas,
+      pac.nombre.toUpperCase(),
+    ];
+    if (pac.dni) lines.push(`DNI: ${pac.dni}`);
+    if (pac.cobertura) lines.push(`Cobertura: ${pac.cobertura}`);
+    if (pac.plan) lines.push(`Plan: ${pac.plan}`);
+    if (pac.nro_afiliado) lines.push(`N° Afiliado: ${pac.nro_afiliado}`);
+    bloques.push(lines.join('\n'));
+  });
+
+  if (!bloques.length) { toast('No hay sesiones en ese mes para ningún paciente con cobertura', 'warning'); return; }
+
+  document.getElementById('fact-texto').value = bloques.join('\n\n---\n\n');
+  document.getElementById('fact-result').classList.remove('hidden');
+  toast(`${bloques.length} paciente${bloques.length > 1 ? 's' : ''} generado${bloques.length > 1 ? 's' : ''}`, 'success');
 }
 
 function toast(msg, type = 'success') {

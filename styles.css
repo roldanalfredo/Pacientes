@@ -652,6 +652,49 @@ td:nth-child(n+4):not(:last-child) {
 #pivot-total .pivot-year-row { background: #c8d0e0 !important; }
 #pivot-total .pivot-year-row:hover { background: #b8c4d8 !important; }
 
+/* ===== FACTURACIÓN ===== */
+#sec-facturacion {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 150px);
+}
+
+.fact-layout {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.fact-controls {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fact-result-panel {
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.fact-result-panel:not(.hidden) {
+  display: flex;
+}
+
+.fact-result-panel textarea {
+  flex: 1;
+  resize: none;
+}
+
+@media (max-width: 768px) {
+  #sec-facturacion { height: auto; }
+  .fact-layout { flex-direction: column; }
+  .fact-controls { flex: none; width: 100%; }
+  .fact-result-panel textarea { min-height: 300px; }
+}
+
 /* ===== FORM PANEL + REGISTROS ===== */
 .form-panel {
   padding: 1rem 1.5rem;
