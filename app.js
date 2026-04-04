@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Pacientes filtros
   document.getElementById('pac-buscar').addEventListener('input', loadPacientesTable);
   document.getElementById('pac-solo-saldo').addEventListener('change', loadPacientesTable);
+  document.getElementById('pac-filtro-estado').addEventListener('change', loadPacientesTable);
   const activoDesde = document.getElementById('pac-activo-desde');
   activoDesde.classList.add('empty-month');
   activoDesde.addEventListener('change', function() {
@@ -159,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
     document.getElementById('pac-buscar').value = '';
     document.getElementById('pac-solo-saldo').checked = false;
+    document.getElementById('pac-filtro-estado').value = '';
     activoDesde.value = '';
     activoDesde.classList.add('empty-month');
     loadPacientesTable();
@@ -249,7 +251,12 @@ function populateSelects() {
     const firstOption = sel.options[0];
     sel.innerHTML = '';
     sel.appendChild(firstOption);
-    pacientesCache.filter(p => p.estado === 'Activo' || id === 'reg-filtro-paciente').forEach(p => {
+    pacientesCache.filter(p => {
+      if (id === 'reg-filtro-paciente') return true;
+      if (p.estado !== 'Activo') return false;
+      if (id === 'fact-paciente') return !!(p.cobertura && p.cobertura.trim());
+      return true;
+    }).forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.nombre;
@@ -502,10 +509,14 @@ async function loadPacientesTable() {
 
   const soloSaldo = document.getElementById('pac-solo-saldo').checked;
   const buscar = document.getElementById('pac-buscar').value.toLowerCase().trim();
+  const filtroEstado = document.getElementById('pac-filtro-estado').value;
 
   let filtered = pacientesCache;
   if (buscar) {
     filtered = filtered.filter(p => p.nombre.toLowerCase().includes(buscar));
+  }
+  if (filtroEstado) {
+    filtered = filtered.filter(p => p.estado === filtroEstado);
   }
   if (soloSaldo) {
     filtered = filtered.filter(p => (saldoMap[p.id] || 0) !== 0);
@@ -521,6 +532,7 @@ async function loadPacientesTable() {
     const saldo = saldoMap[p.id] || 0;
     const saldoClass = saldo > 0 ? 'saldo-positivo' : saldo < 0 ? 'saldo-negativo' : 'saldo-cero';
     const tr = document.createElement('tr');
+    const estadoClass = p.estado === 'Activo' ? 'badge-activo' : 'badge-inactivo';
     tr.innerHTML = `
       <td>${esc(p.nombre)}</td>
       <td>${esc(p.moneda)}</td>
@@ -528,9 +540,11 @@ async function loadPacientesTable() {
       <td>${esc(p.origen || '')}</td>
       <td class="${saldoClass}">${formatNum(saldo)}</td>
       <td>
+        <button class="btn-registros" onclick="verRegistrosPaciente(${p.id})">Registros</button>
         <button class="btn-edit" onclick="editPaciente(${p.id})">Editar</button>
         <button class="btn-danger" onclick="deletePaciente(${p.id}, '${esc(p.nombre)}')">Eliminar</button>
       </td>
+      <td><span class="estado-badge ${estadoClass}">${esc(p.estado || '')}</span></td>
     `;
     tbody.appendChild(tr);
   });
@@ -634,6 +648,13 @@ window.deleteRegistro = async function(id) {
   }
   toast('Registro eliminado', 'success');
   invalidateDashboard();
+  loadRegistros();
+};
+
+window.verRegistrosPaciente = function(id) {
+  navigateTo('registros');
+  document.getElementById('reg-filtro-paciente').value = id;
+  regPage = 0;
   loadRegistros();
 };
 

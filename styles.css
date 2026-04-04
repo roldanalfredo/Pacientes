@@ -218,7 +218,8 @@ main {
   color: var(--text-light);
 }
 
-.filter-inline input {
+.filter-inline input,
+.filter-inline select {
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -256,6 +257,19 @@ input[type="month"].empty-month {
 
 .btn-secondary:hover { background: var(--bg); }
 
+.btn-registros {
+  padding: 0.3rem 0.75rem;
+  background: transparent;
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-registros:hover { background: var(--success); color: white; }
+
 .btn-danger {
   padding: 0.3rem 0.75rem;
   background: transparent;
@@ -264,7 +278,10 @@ input[type="month"].empty-month {
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: all 0.2s;
 }
+
+.btn-danger:hover { background: var(--danger); color: white; }
 
 .btn-edit {
   padding: 0.3rem 0.75rem;
@@ -274,7 +291,10 @@ input[type="month"].empty-month {
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: all 0.2s;
 }
+
+.btn-edit:hover { background: var(--primary); color: white; }
 
 /* ===== FORMS ===== */
 .form-card {
@@ -317,7 +337,7 @@ input[type="month"].empty-month {
 }
 
 .readonly {
-  background: #f0f0f0;
+  background: var(--bg);
   color: var(--text-light);
 }
 
@@ -373,6 +393,19 @@ td:nth-child(n+4):not(:last-child) {
   font-variant-numeric: tabular-nums;
 }
 .cel-dolar { background: #d4edda !important; }
+
+#tabla-pacientes th:last-child,
+#tabla-pacientes td:last-child { text-align: center; }
+
+.estado-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-activo    { background: #d4edda; color: #1a6b35; }
+.badge-inactivo  { background: #f0f0f0; color: #666; }
 
 .saldo-positivo { color: var(--danger); font-weight: 600; }
 .saldo-negativo { color: var(--success); font-weight: 600; }
@@ -467,12 +500,16 @@ td:nth-child(n+4):not(:last-child) {
 
 .modal-content {
   background: white;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 12px;
   width: 500px;
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.modal-content .form-group {
+  margin-bottom: 0.75rem;
 }
 
 .modal-content h3 {

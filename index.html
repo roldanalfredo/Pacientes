@@ -160,6 +160,14 @@
             <label>Activo desde:</label>
             <input type="month" id="pac-activo-desde">
           </div>
+          <div class="filter-inline">
+            <label>Estado:</label>
+            <select id="pac-filtro-estado">
+              <option value="">Todos</option>
+              <option value="Activo" selected>Activo</option>
+              <option value="Inactivo">Inactivo</option>
+              </select>
+          </div>
           <button id="btn-limpiar-filtros" class="btn-secondary">Limpiar filtros</button>
           <button id="btn-nuevo-paciente" class="btn-primary">+ Nuevo Paciente</button>
         </div>
@@ -200,9 +208,15 @@
                   </select>
                 </div>
               </div>
-              <div class="form-group">
-                <label>CUIT/CUIL</label>
-                <input type="text" id="pac-dni" placeholder="Para identificar en extracto bancario">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>CUIT/CUIL</label>
+                  <input type="text" id="pac-dni" placeholder="Para identificar en extracto">
+                </div>
+                <div class="form-group">
+                  <label>Fecha de inicio</label>
+                  <input type="date" id="pac-fecha-inicio">
+                </div>
               </div>
               <div class="form-row">
                 <div class="form-group">
@@ -224,10 +238,6 @@
                   <input type="text" id="pac-nro-afiliado" placeholder="Número de afiliado">
                 </div>
               </div>
-              <div class="form-group">
-                <label>Fecha de inicio</label>
-                <input type="date" id="pac-fecha-inicio">
-              </div>
               <div class="form-actions">
                 <button type="submit" class="btn-primary">Guardar</button>
                 <button type="button" class="btn-secondary" id="btn-cancelar-paciente">Cancelar</button>
@@ -239,7 +249,7 @@
         <table id="tabla-pacientes">
           <thead>
             <tr>
-              <th>Nombre</th><th>Moneda</th><th>Valor</th><th>Origen</th><th>Saldo</th><th>Acciones</th>
+              <th>Nombre</th><th>Moneda</th><th>Valor</th><th>Origen</th><th>Saldo</th><th>Acciones</th><th>Estado</th>
             </tr>
           </thead>
           <tbody></tbody>
