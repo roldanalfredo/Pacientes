@@ -771,6 +771,7 @@ async function loadRegistros() {
     .from('registros')
     .select('*, pacientes(nombre)', { count: 'exact' })
     .order('fecha', { ascending: false })
+    .order('id', { ascending: false })
     .range(regPage * REG_PAGE_SIZE, (regPage + 1) * REG_PAGE_SIZE - 1);
 
   const accion = document.getElementById('reg-filtro-accion').value;

@@ -151,6 +151,9 @@ nav {
   gap: 0.25rem;
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  position: sticky;
+  top: 53px;
+  z-index: 99;
 }
 
 .nav-btn {
