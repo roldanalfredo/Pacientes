@@ -139,6 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-procesar-cal').addEventListener('click', procesarCalendar);
   document.getElementById('btn-cargar-cal').addEventListener('click', cargarCalendar);
 
+  // Aumentos
+  document.getElementById('aumentos-cant-meses').addEventListener('change', loadAumentos);
+  document.getElementById('aumentos-solo-activos').addEventListener('change', loadAumentos);
   // Facturación
   document.getElementById('btn-generar-factura').addEventListener('click', generarTextoFactura);
   document.getElementById('btn-generar-todos').addEventListener('click', generarTodosFactura);
@@ -229,8 +232,43 @@ function showLogin() {
 // =============================================
 async function loadInitialData() {
   await Promise.all([loadPacientes(), loadTiposPsico()]);
+  await actualizarEstadosPacientes();
   populateSelects();
   navigateTo('dashboard');
+}
+
+async function actualizarEstadosPacientes() {
+  const hace3meses = new Date();
+  hace3meses.setMonth(hace3meses.getMonth() - 2);
+  const limite = hace3meses.toISOString().split('T')[0];
+
+  // Últimas sesiones por paciente
+  const { data: sesiones } = await db
+    .from('registros')
+    .select('paciente_id, fecha')
+    .eq('accion', 'SESION')
+    .gte('fecha', limite);
+
+  const conSesionReciente = new Set((sesiones || []).map(r => r.paciente_id));
+
+  // Saldos
+  const { data: saldos } = await db.from('v_saldos').select('id, saldo');
+  const saldoMap = {};
+  (saldos || []).forEach(s => { saldoMap[s.id] = s.saldo; });
+
+  const aInactivar = pacientesCache.filter(p =>
+    p.estado === 'Activo' &&
+    !conSesionReciente.has(p.id) &&
+    (saldoMap[p.id] || 0) === 0
+  ).map(p => p.id);
+
+  if (aInactivar.length > 0) {
+    await db.from('pacientes').update({ estado: 'Inactivo' }).in('id', aInactivar);
+    aInactivar.forEach(id => {
+      const p = pacientesCache.find(p => p.id === id);
+      if (p) p.estado = 'Inactivo';
+    });
+  }
 }
 
 async function loadPacientes() {
@@ -299,6 +337,7 @@ function navigateTo(section) {
   if (section === 'pacientes') loadPacientesTable();
   if (section === 'registros') { regPage = 0; loadRegistros(); }
   if (section === 'cargar-psico') document.getElementById('psico-tipo').focus();
+  if (section === 'aumentos') loadAumentos();
 }
 
 // =============================================
@@ -333,7 +372,13 @@ async function handleSesion(e) {
 
   if (error) { toast('Error: ' + error.message, 'error'); return; }
 
-  toast('Sesión guardada', 'success');
+  if (pac.estado === 'Inactivo') {
+    await db.from('pacientes').update({ estado: 'Activo' }).eq('id', pacienteId);
+    pac.estado = 'Activo';
+    toast('Sesión guardada · Paciente reactivado', 'success');
+  } else {
+    toast('Sesión guardada', 'success');
+  }
   invalidateDashboard();
   document.getElementById('form-sesion').reset();
   const today = todayLocal();
@@ -659,10 +704,9 @@ window.deleteRegistro = async function(id) {
 };
 
 window.verRegistrosPaciente = function(id) {
-  navigateTo('registros');
   document.getElementById('reg-filtro-paciente').value = id;
   regPage = 0;
-  loadRegistros();
+  navigateTo('registros');
 };
 
 window.deletePaciente = async function(id, nombre) {
@@ -1506,6 +1550,181 @@ async function cargarCalendar() {
   document.getElementById('cal-results').classList.add('hidden');
   document.getElementById('cal-file').value = '';
 }
+
+// =============================================
+// AUMENTOS
+// =============================================
+
+async function loadAumentos() {
+  const cantMeses = parseInt(document.getElementById('aumentos-cant-meses').value);
+  const soloActivos = document.getElementById('aumentos-solo-activos').checked;
+
+  // Calcular rango de meses
+  const meses = [];
+  const hoy = new Date();
+  for (let i = cantMeses - 1; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    meses.push({ anio: d.getFullYear(), mes: d.getMonth() + 1 });
+  }
+  const desde = `${meses[0].anio}-${String(meses[0].mes).padStart(2, '0')}-01`;
+
+  // Traer sesiones del período
+  const { data: registros, error } = await db
+    .from('registros')
+    .select('paciente_id, fecha, valor_sesion')
+    .eq('accion', 'SESION')
+    .gte('fecha', desde)
+    .gt('valor_sesion', 0);
+
+  if (error) { toast('Error cargando registros: ' + error.message, 'error'); return; }
+
+  // Agrupar: max valor_sesion por paciente por mes
+  const maxPorMes = {}; // { pacienteId: { 'YYYY-MM': max } }
+  (registros || []).forEach(r => {
+    const ym = r.fecha.substring(0, 7);
+    if (!maxPorMes[r.paciente_id]) maxPorMes[r.paciente_id] = {};
+    const prev = maxPorMes[r.paciente_id][ym] || 0;
+    if ((r.valor_sesion || 0) > prev) maxPorMes[r.paciente_id][ym] = r.valor_sesion;
+  });
+
+  // Filtrar pacientes
+  let pacientes = pacientesCache;
+  if (soloActivos) pacientes = pacientes.filter(p => p.estado === 'Activo');
+
+  // Construir header
+  const MONTH_NAMES_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const thead = document.getElementById('thead-aumentos');
+  thead.innerHTML = `<tr>
+    <th>Paciente</th>
+    <th>Moneda</th>
+    <th>Valor actual</th>
+    ${meses.map(m => `<th>${MONTH_NAMES_SHORT[m.mes - 1]}-${String(m.anio).slice(2)}</th>`).join('')}
+    <th>% Aumento</th>
+    <th>Nuevo valor</th>
+    <th></th>
+  </tr>`;
+
+  // Construir filas
+  const tbody = document.querySelector('#tabla-aumentos tbody');
+  tbody.innerHTML = '';
+
+  pacientes.forEach(p => {
+    const mesMap = maxPorMes[p.id] || {};
+    const pct = p.aumento_pct != null ? p.aumento_pct : '';
+    const nuevoValor = pct !== '' ? Math.round(p.valor * (1 + parseFloat(pct) / 100)) : '';
+
+    // Calcular color de cada celda de mes vs valor actual
+    const celdas = meses.map(m => {
+      const ym = `${m.anio}-${String(m.mes).padStart(2, '0')}`;
+      const val = mesMap[ym];
+      if (val == null) return `<td class="aum-vacio">-</td>`;
+      let cls = '';
+      if (val > p.valor) cls = 'aum-mayor';
+      else if (val < p.valor) cls = 'aum-menor';
+      else cls = 'aum-igual';
+      return `<td class="${cls}">${formatNum(val)}</td>`;
+    }).join('');
+
+    const tr = document.createElement('tr');
+    tr.dataset.pacienteId = p.id;
+    tr.innerHTML = `
+      <td>${esc(p.nombre)}</td>
+      <td>${esc(p.moneda)}</td>
+      <td class="aum-valor-cell">
+        <input type="number" class="aum-valor-input" data-id="${p.id}" value="${p.valor}" data-original="${p.valor}" step="1" ${p.valor_anterior != null ? 'class="aum-valor-pending"' : ''}>
+        <span class="aum-valor-prev">${p.valor_anterior != null ? 'antes: ' + formatNum(p.valor_anterior) : ''}</span>
+      </td>
+      ${celdas}
+      <td><input type="number" class="aum-pct-input" data-id="${p.id}" value="${pct}" placeholder="%" min="0" max="999" style="width:70px"></td>
+      <td class="aum-nuevo-valor" data-id="${p.id}">${nuevoValor !== '' ? formatNum(nuevoValor) : '-'}</td>
+      <td><button class="btn-registros" onclick="verRegistrosPaciente(${p.id})">Registros</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Listeners en inputs valor actual
+  tbody.querySelectorAll('.aum-valor-input').forEach(input => {
+    const guardarValor = async function() {
+      const id = parseInt(input.dataset.id);
+      const pac = pacientesCache.find(p => p.id === id);
+      const valor = parseFloat(input.value);
+
+      if (!isNaN(valor) && valor > 0) {
+        const update = { valor };
+        if (pac.valor_anterior == null) update.valor_anterior = pac.valor;
+        const { error } = await db.from('pacientes').update(update).eq('id', id);
+        if (!error) {
+          if (pac.valor_anterior == null) {
+            pac.valor_anterior = pac.valor;
+            input.nextElementSibling.textContent = 'antes: ' + formatNum(pac.valor_anterior);
+          }
+          pac.valor = valor;
+          input.dataset.original = valor;
+          input.classList.remove('aum-valor-pending');
+          input.classList.add('aum-valor-saved');
+          setTimeout(() => input.classList.remove('aum-valor-saved'), 2000);
+        }
+      }
+    };
+
+    input.addEventListener('input', function() {
+      const original = parseFloat(this.dataset.original);
+      const valor = parseFloat(this.value);
+      const prevEl = this.nextElementSibling;
+
+      if (!isNaN(valor) && valor > 0 && valor !== original) {
+        this.classList.add('aum-valor-pending');
+        this.classList.remove('aum-valor-saved');
+        prevEl.textContent = 'antes: ' + formatNum(original);
+      } else if (valor === original) {
+        this.classList.remove('aum-valor-pending', 'aum-valor-saved');
+        prevEl.textContent = '';
+      }
+    });
+
+    input.addEventListener('blur', function() {
+      const valor = parseFloat(this.value);
+      const original = parseFloat(this.dataset.original);
+      if (!isNaN(valor) && valor > 0 && valor !== original) guardarValor();
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        guardarValor();
+        const focusable = Array.from(document.querySelectorAll('#tabla-aumentos input:not([disabled])'));
+        const idx = focusable.indexOf(this);
+        if (idx >= 0 && idx < focusable.length - 1) focusable[idx + 1].focus();
+      }
+    });
+  });
+
+  // Listeners en inputs %
+  tbody.querySelectorAll('.aum-pct-input').forEach(input => {
+    let saveTimer = null;
+    input.addEventListener('input', function() {
+      const id = parseInt(this.dataset.id);
+      const pac = pacientesCache.find(p => p.id === id);
+      const pct = this.value !== '' ? parseFloat(this.value) : null;
+
+      if (pct != null && !isNaN(pct)) {
+        const nuevo = Math.round(pac.valor * (1 + pct / 100));
+        document.querySelector(`.aum-nuevo-valor[data-id="${id}"]`).textContent = formatNum(nuevo);
+      } else {
+        document.querySelector(`.aum-nuevo-valor[data-id="${id}"]`).textContent = '-';
+      }
+
+      // Guardar en Supabase con debounce para no spamear mientras escribe
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        const val = pct != null && !isNaN(pct) ? pct : null;
+        const { error } = await db.from('pacientes').update({ aumento_pct: val }).eq('id', id);
+        if (!error) pac.aumento_pct = val;
+      }, 600);
+    });
+  });
+}
+
 
 // =============================================
 // UTILS

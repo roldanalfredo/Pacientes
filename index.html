@@ -43,6 +43,7 @@
       <button class="nav-btn" data-section="cargar-psico">Cargar Psicotécnico</button>
       <button class="nav-btn" data-section="pacientes">Pacientes</button>
       <button class="nav-btn" data-section="registros">Registros</button>
+      <button class="nav-btn" data-section="aumentos">Revisión</button>
       <button class="nav-btn" data-section="etl">ETL Bancario</button>
       <button class="nav-btn" data-section="etl-calendar">ETL Calendar</button>
       <button class="nav-btn" data-section="facturacion">Facturación</button>
@@ -409,6 +410,32 @@
           <div class="form-actions">
             <button id="btn-cargar-cal" class="btn-primary">Cargar Sesiones Seleccionadas</button>
           </div>
+        </div>
+      </section>
+
+      <!-- AUMENTOS -->
+      <section id="sec-aumentos" class="section">
+        <div class="aumentos-header">
+          <h2>Revisión</h2>
+          <div class="aumentos-controles">
+            <label>Meses a mostrar:
+              <select id="aumentos-cant-meses">
+                <option value="4">4</option>
+                <option value="6" selected>6</option>
+                <option value="8">8</option>
+                <option value="12">12</option>
+              </select>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="aumentos-solo-activos" checked> Solo activos
+            </label>
+          </div>
+        </div>
+        <div class="tabla-scroll-wrap">
+          <table id="tabla-aumentos">
+            <thead id="thead-aumentos"></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
 

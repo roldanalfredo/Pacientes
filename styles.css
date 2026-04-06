@@ -652,8 +652,56 @@ td:nth-child(n+4):not(:last-child) {
 #pivot-total .pivot-year-row { background: #c8d0e0 !important; }
 #pivot-total .pivot-year-row:hover { background: #b8c4d8 !important; }
 
+/* ===== AUMENTOS ===== */
+.aumentos-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.aumentos-header h2 { margin: 0; }
+.aumentos-controles {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.aumentos-controles label { font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; }
+.aumentos-controles select { padding: 0.3rem 0.5rem; border-radius: 4px; border: 1px solid #ccc; }
+
+#tabla-aumentos th, #tabla-aumentos td {
+  padding: 0.45rem 0.6rem;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+#tabla-aumentos th:nth-child(1), #tabla-aumentos td:nth-child(1) { text-align: left; }
+
+.aum-vacio { color: #aaa; text-align: right; }
+.aum-mayor { background: #d4edda; color: #155724; font-weight: 600; }
+.aum-menor { background: #f8d7da; color: #721c24; }
+.aum-igual { background: #fff3cd; color: #856404; }
+
+.aum-valor-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.aum-valor-prev { font-size: 0.75rem; color: #999; white-space: nowrap; }
+
+.aum-valor-input, .aum-pct-input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.88rem;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+.aum-valor-input:focus, .aum-pct-input:focus { outline: none; border-color: var(--primary); }
+.aum-valor-input.aum-valor-pending { border-color: #f59e0b; background: #fffbeb; }
+.aum-valor-input.aum-valor-saved { border-color: #22c55e; background: #f0fdf4; }
+
+.aum-nuevo-valor { font-weight: 700; color: var(--primary); }
+
 /* ===== FACTURACIÓN ===== */
-#sec-facturacion {
+#sec-facturacion.active {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 150px);
