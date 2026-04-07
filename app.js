@@ -827,7 +827,7 @@ async function loadRegistros() {
     tr.innerHTML = `
       <td>${formatDate(r.fecha)}</td>
       <td>${esc(r.pacientes?.nombre || '?')}</td>
-      <td>${esc(r.accion)}</td>
+      <td><span class="estado-badge badge-${r.accion === 'PAGO' ? 'pago' : 'sesion'}">${esc(r.accion)}</span></td>
       <td${dolarClass}>${r.valor_sesion ? formatNum(r.valor_sesion) : ''}</td>
       <td${dolarClass}>${r.valor_pago ? formatNum(r.valor_pago) : ''}</td>
       <td>${r.pesos_recibidos ? formatNum(r.pesos_recibidos) : ''}</td>

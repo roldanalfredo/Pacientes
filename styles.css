@@ -409,6 +409,8 @@ td:nth-child(n+4):not(:last-child) {
 }
 .badge-activo    { background: #d4edda; color: #1a6b35; }
 .badge-inactivo  { background: #f0f0f0; color: #666; }
+.badge-sesion    { background: #dbeafe; color: #1e40af; }
+.badge-pago      { background: #d1fae5; color: #065f46; }
 
 .saldo-positivo { color: var(--danger); font-weight: 600; }
 .saldo-negativo { color: var(--success); font-weight: 600; }
