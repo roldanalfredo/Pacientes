@@ -1376,6 +1376,7 @@ function parseICS(text) {
     if (line.startsWith('STATUS:')) ev.status = line.substring(7);
   }
 
+
   const events = [];
 
   // Expandir masters, excluyendo fechas que tienen override
@@ -1413,15 +1414,24 @@ function matchPaciente(summary) {
     if (frankie) return frankie;
   }
   // Exact match
-  let found = pacientesCache.find(p => normalize(p.nombre) === s);
-  if (found) return found;
-  // Patient name contained in summary
-  found = pacientesCache.find(p => s.includes(normalize(p.nombre)));
-  if (found) return found;
-  // Summary contained in patient name
-  found = pacientesCache.find(p => normalize(p.nombre).includes(s));
-  if (found) return found;
-  return null;
+  const exact = pacientesCache.find(p => normalize(p.nombre) === s);
+  if (exact) return exact;
+  // Score por palabras en común: más palabras que coinciden = mejor match.
+  // Empate: fracción matchCount/totalPalabrasNombre más alta gana (menos palabras "sobrantes").
+  const sWords = s.split(/\s+/);
+  let best = null, bestCount = 0, bestFraction = 0;
+  for (const p of pacientesCache) {
+    const pWords = normalize(p.nombre).split(/\s+/);
+    const count = sWords.filter(w => pWords.includes(w)).length;
+    if (count === 0) continue;
+    const fraction = count / pWords.length;
+    if (count > bestCount || (count === bestCount && fraction > bestFraction)) {
+      bestCount = count;
+      bestFraction = fraction;
+      best = p;
+    }
+  }
+  return best;
 }
 
 async function procesarCalendar() {
