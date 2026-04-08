@@ -1335,21 +1335,23 @@ function expandRRULE(dtstart, rrule, exdates) {
 }
 
 function parseICS(text) {
-  const events = [];
+  const masters = {};   // uid -> ev con RRULE
+  const overrides = {}; // uid -> [ev con RECURRENCE-ID]
+  const singles = [];   // eventos sin UID o sin RRULE ni RECURRENCE-ID
+
   const lines = text.replace(/\r\n /g, '').replace(/\r/g, '').split('\n');
   let ev = null;
   for (const line of lines) {
     if (line === 'BEGIN:VEVENT') { ev = { exdates: new Set() }; continue; }
     if (line === 'END:VEVENT') {
       if (ev) {
-        if (ev.rrule && ev.date) {
-          // Expandir evento recurrente en múltiples eventos
-          const occurrences = expandRRULE(ev.date, ev.rrule, ev.exdates);
-          for (const d of occurrences) {
-            events.push({ summary: ev.summary, date: d, status: ev.status });
-          }
+        if (ev.uid && ev.rrule && ev.date) {
+          masters[ev.uid] = ev;
+        } else if (ev.uid && ev.recurrenceId) {
+          if (!overrides[ev.uid]) overrides[ev.uid] = [];
+          overrides[ev.uid].push(ev);
         } else {
-          events.push({ summary: ev.summary, date: ev.date, status: ev.status });
+          singles.push(ev);
         }
       }
       ev = null;
@@ -1357,18 +1359,45 @@ function parseICS(text) {
     }
     if (!ev) continue;
     if (line.startsWith('SUMMARY:')) ev.summary = line.substring(8);
+    if (line.startsWith('UID:')) ev.uid = line.substring(4).trim();
     if (line.startsWith('DTSTART')) {
       const val = line.split(':').pop();
       ev.date = parseICSDate(val);
     }
+    if (line.startsWith('RECURRENCE-ID')) {
+      const val = line.split(':').pop();
+      ev.recurrenceId = parseICSDate(val);
+    }
     if (line.startsWith('RRULE:')) ev.rrule = line.substring(6);
     if (line.startsWith('EXDATE')) {
       const val = line.split(':').pop();
-      // Puede tener múltiples fechas separadas por coma
       val.split(',').forEach(d => ev.exdates.add(parseICSDate(d.trim())));
     }
     if (line.startsWith('STATUS:')) ev.status = line.substring(7);
   }
+
+  const events = [];
+
+  // Expandir masters, excluyendo fechas que tienen override
+  for (const uid of Object.keys(masters)) {
+    const m = masters[uid];
+    const overrideExdates = new Set(m.exdates);
+    (overrides[uid] || []).forEach(o => overrideExdates.add(o.recurrenceId));
+    const occurrences = expandRRULE(m.date, m.rrule, overrideExdates);
+    for (const d of occurrences) {
+      events.push({ summary: m.summary, date: d, status: m.status });
+    }
+    // Agregar los overrides como eventos individuales con su nueva fecha
+    for (const o of (overrides[uid] || [])) {
+      events.push({ summary: o.summary || m.summary, date: o.date, status: o.status });
+    }
+  }
+
+  // Eventos sin RRULE ni RECURRENCE-ID
+  for (const ev of singles) {
+    events.push({ summary: ev.summary, date: ev.date, status: ev.status });
+  }
+
   return events;
 }
 
