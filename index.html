@@ -173,80 +173,6 @@
           <button id="btn-nuevo-paciente" class="btn-primary">+ Nuevo Paciente</button>
         </div>
 
-        <!-- Modal nuevo/editar paciente -->
-        <div id="modal-paciente" class="modal hidden">
-          <div class="modal-content">
-            <h3 id="modal-paciente-title">Nuevo Paciente</h3>
-            <form id="form-paciente">
-              <input type="hidden" id="pac-id">
-              <div class="form-group">
-                <label>Nombre</label>
-                <input type="text" id="pac-nombre" required>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Moneda</label>
-                  <select id="pac-moneda" required>
-                    <option value="PESO">PESO</option>
-                    <option value="DÓLAR">DÓLAR</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Valor sesión</label>
-                  <input type="number" id="pac-valor" step="0.01" required>
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Origen</label>
-                  <input type="text" id="pac-origen" placeholder="Propio, Consultora...">
-                </div>
-                <div class="form-group">
-                  <label>Estado</label>
-                  <select id="pac-estado">
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>CUIT/CUIL</label>
-                  <input type="text" id="pac-dni" placeholder="Para identificar en extracto">
-                </div>
-                <div class="form-group">
-                  <label>Fecha de inicio</label>
-                  <input type="date" id="pac-fecha-inicio">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>DNI</label>
-                  <input type="text" id="pac-dni-paciente" placeholder="Número de documento">
-                </div>
-                <div class="form-group">
-                  <label>Cobertura</label>
-                  <input type="text" id="pac-cobertura" placeholder="Obra social / prepaga">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Plan</label>
-                  <input type="text" id="pac-plan" placeholder="Tipo de plan">
-                </div>
-                <div class="form-group">
-                  <label>N° Afiliado</label>
-                  <input type="text" id="pac-nro-afiliado" placeholder="Número de afiliado">
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn-primary">Guardar</button>
-                <button type="button" class="btn-secondary" id="btn-cancelar-paciente">Cancelar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
         <table id="tabla-pacientes">
           <thead>
             <tr>
@@ -471,6 +397,80 @@
         </div>
       </section>
     </main>
+
+    <!-- Modal nuevo/editar paciente -->
+    <div id="modal-paciente" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="modal-paciente-title">Nuevo Paciente</h3>
+        <form id="form-paciente">
+          <input type="hidden" id="pac-id">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="pac-nombre" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Moneda</label>
+              <select id="pac-moneda" required>
+                <option value="PESO">PESO</option>
+                <option value="DÓLAR">DÓLAR</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Valor sesión</label>
+              <input type="number" id="pac-valor" step="0.01" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Origen</label>
+              <input type="text" id="pac-origen" placeholder="Propio, Consultora...">
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="pac-estado">
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>CUIT/CUIL</label>
+              <input type="text" id="pac-dni" placeholder="Para identificar en extracto">
+            </div>
+            <div class="form-group">
+              <label>Fecha de inicio</label>
+              <input type="date" id="pac-fecha-inicio">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>DNI</label>
+              <input type="text" id="pac-dni-paciente" placeholder="Número de documento">
+            </div>
+            <div class="form-group">
+              <label>Cobertura</label>
+              <input type="text" id="pac-cobertura" placeholder="Obra social / prepaga">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Plan</label>
+              <input type="text" id="pac-plan" placeholder="Tipo de plan">
+            </div>
+            <div class="form-group">
+              <label>N° Afiliado</label>
+              <input type="text" id="pac-nro-afiliado" placeholder="Número de afiliado">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Guardar</button>
+            <button type="button" class="btn-secondary" id="btn-cancelar-paciente">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Modal editar registro -->
     <div id="modal-registro" class="modal hidden">
