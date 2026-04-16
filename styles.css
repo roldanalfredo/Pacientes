@@ -688,6 +688,9 @@ td:nth-child(n+4):not(:last-child) {
 .aum-menor { background: #f8d7da; color: #721c24; }
 .aum-igual { background: #fff3cd; color: #856404; }
 
+.aum-leyenda { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.aum-leyenda-item { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
 .aum-valor-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .aum-valor-prev { font-size: 0.75rem; color: #999; white-space: nowrap; }
 
