@@ -1378,6 +1378,10 @@ function parseICS(text) {
 
 
   const events = [];
+  // Map date → { summary, status, masterDate } para deduplicar cuando dos masters generan la misma fecha
+  // (pasa cuando Google Calendar parte una serie: el master viejo incluye la fecha de corte por el UNTIL
+  // sin hora, y el master nuevo empieza en esa misma fecha).
+  const masterDateMap = new Map();
 
   // Expandir masters, excluyendo fechas que tienen override
   for (const uid of Object.keys(masters)) {
@@ -1386,12 +1390,19 @@ function parseICS(text) {
     (overrides[uid] || []).forEach(o => overrideExdates.add(o.recurrenceId));
     const occurrences = expandRRULE(m.date, m.rrule, overrideExdates);
     for (const d of occurrences) {
-      events.push({ summary: m.summary, date: d, status: m.status });
+      const existing = masterDateMap.get(d);
+      if (!existing || m.date > existing.masterDate) {
+        masterDateMap.set(d, { summary: m.summary, date: d, status: m.status, masterDate: m.date });
+      }
     }
     // Agregar los overrides como eventos individuales con su nueva fecha
     for (const o of (overrides[uid] || [])) {
       events.push({ summary: o.summary || m.summary, date: o.date, status: o.status });
     }
+  }
+
+  for (const { masterDate: _, ...ev } of masterDateMap.values()) {
+    events.push(ev);
   }
 
   // Eventos sin RRULE ni RECURRENCE-ID
