@@ -835,7 +835,7 @@ async function loadRegistros() {
       <td class="col-origen">${esc(r.origen || '')}</td>
       <td style="${saldoClass}">${saldo != null ? formatNum(saldo) : ''}</td>
       <td class="col-obs">${esc(r.observaciones || '')}</td>
-      <td><button class="btn-edit" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
+      <td><button class="btn-edit" title="Editar paciente" onclick="editPaciente(${r.paciente_id})">⚙</button> <button class="btn-edit" title="Editar registro" onclick="editRegistro(${r.id})">✎</button> <button class="btn-danger" onclick="deleteRegistro(${r.id})">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
