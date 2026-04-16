@@ -1688,7 +1688,10 @@ async function loadAumentos() {
       ${celdas}
       <td><input type="number" class="aum-pct-input" data-id="${p.id}" value="${pct}" placeholder="%" min="0" max="999" style="width:70px"></td>
       <td class="aum-nuevo-valor" data-id="${p.id}">${nuevoValor !== '' ? formatNum(nuevoValor) : '-'}</td>
-      <td><button class="btn-registros" onclick="verRegistrosPaciente(${p.id})">Registros</button></td>
+      <td>
+        <button class="btn-edit" onclick="editPaciente(${p.id})">Paciente</button>
+        <button class="btn-registros" onclick="verRegistrosPaciente(${p.id})">Registros</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
