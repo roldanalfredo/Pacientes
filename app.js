@@ -1823,7 +1823,8 @@ async function generarTextoFactura() {
   if (!pac) { toast('Paciente no encontrado', 'error'); return; }
 
   const desde = mes + '-01';
-  const hasta = mes + '-31';
+  const [anio, nroMes] = mes.split('-').map(Number);
+  const hasta = new Date(anio, nroMes, 0).toISOString().split('T')[0];
 
   const { data, error } = await db
     .from('registros')
@@ -1866,7 +1867,8 @@ async function generarTodosFactura() {
   if (!pacientes.length) { toast('No hay pacientes con cobertura', 'error'); return; }
 
   const desde = mes + '-01';
-  const hasta = mes + '-31';
+  const [anio, nroMes] = mes.split('-').map(Number);
+  const hasta = new Date(anio, nroMes, 0).toISOString().split('T')[0];
 
   const { data, error } = await db
     .from('registros')
