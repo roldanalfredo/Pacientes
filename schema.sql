@@ -89,6 +89,20 @@ GROUP BY DATE_TRUNC('month', fecha), moneda, accion
 ORDER BY mes DESC, moneda, accion;
 
 -- =============================================
+-- GRANTS
+-- =============================================
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pacientes TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.tipos_psicotecnico TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.registros TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.psicotecnicos TO authenticated;
+
+GRANT SELECT ON public.v_saldos TO authenticated;
+GRANT SELECT ON public.v_resumen_mensual TO authenticated;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- =============================================
 -- ROW LEVEL SECURITY
 -- =============================================
 
